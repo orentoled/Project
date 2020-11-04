@@ -1,7 +1,5 @@
 
 
-
-
 class NLPInObject:
     def __init__(self, text_object, expressions):
         self.text = text_object
