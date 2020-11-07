@@ -1,10 +1,15 @@
 import re
+import NLPInObject
+import GUI
 
 from docx import Document
 from docx.enum.text import WD_COLOR_INDEX
 from termcolor import colored
 
-import NLPInObject
+
+start_app()
+
+"""
 
 text = "After shiran carefully unpacking your 14-03-2020 espresso machine machine, wash all removable parts with warm soapy water and rinse thoroughly. The Power Button button will light solid blue while the indicator light on the Control Knob button will start to blink, indicating the machine machine is heating up."
 
@@ -58,7 +63,7 @@ document.save('demo.docx')
 doc = Document('demo.docx')
 doc.save('demo.docx')
 
-
+"""
 """
 
 for paragraph in document.paragraphs:
