@@ -1,17 +1,21 @@
+
 import re
 import NLPInObject
 import GUI
 
 from docx import Document
+from docx.shared import Inches
 from docx.enum.text import WD_COLOR_INDEX
 from termcolor import colored
 
 
 start_app()
 
+
 """
 
 text = "After shiran carefully unpacking your 14-03-2020 espresso machine machine, wash all removable parts with warm soapy water and rinse thoroughly. The Power Button button will light solid blue while the indicator light on the Control Knob button will start to blink, indicating the machine machine is heating up."
+
 
 expressions = "\"machine group\": (\"coffee machine\", \"product\", \"machine\"), \"button group\": (\"Power button\", \"Control Knob\"), \"shiran group\": (\"Power shiran\", \"Control shiran\")"
 
@@ -41,6 +45,7 @@ p = document.add_paragraph(text)
 patterns = [r'\b' + word + r'\b' for word in nlp.words_to_mark]
 re_highlight = re.compile('(' + '|'.join(p for p in patterns) + ')+',
                           re.IGNORECASE)
+
 
 
 def highlight_words(document_input):
