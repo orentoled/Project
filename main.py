@@ -9,7 +9,6 @@ from docx.enum.text import WD_COLOR_INDEX
 from termcolor import colored
 
 
-start_app()
 
 
 """
