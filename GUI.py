@@ -1,9 +1,16 @@
 
 #This file implements the GUI of the HighLighter#
 
+import re
 import os
+import json
 import wx
 import wx.richtext as rt
+
+# from docx import Document
+# from docx.shared import Inches
+# from docx.enum.text import WD_COLOR_INDEX
+
 
 APP_EXIT = 1
 APP_OPEN = 2
@@ -11,6 +18,12 @@ APP_SAVE = 3
 APP_NEW = 4
 
 UNDOS_ALLOWED = 10
+
+
+
+
+
+
 
 class RichTextPanel(wx.Panel):
 
@@ -50,6 +63,23 @@ class Highlighter(wx.Frame):
         self.toolbar = self.CreateToolBar(style=wx.TB_TEXT)
         self.MakeToolBar()
         self.init_ui()
+        self.groups = None
+        self.words_to_highlight = None
+        self.opened_text = ""
+        self.patterns = None
+        self.re_highlight = None
+        self.pos_list = []
+
+
+
+        # self.text_panel.my_text.WriteText("This is BLUE background with WHITE text, This is RED background with BLACK text")
+        # self.text_panel.my_text.SetStyle((0, 41), rt.RichTextAttr(wx.TextAttr("WHITE", "BLUE")))
+        # self.text_panel.my_text.SetStyle((42, 79), rt.RichTextAttr(wx.TextAttr("BLACK", "RED")))
+
+
+
+
+
 
     def init_ui(self):
         menu_bar = wx.MenuBar()
@@ -110,11 +140,67 @@ class Highlighter(wx.Frame):
             return
 
         path = dialog.GetPath()
-
+        self.groups, self.words_to_highlight = get_expressions_from_json()
         if os.path.exists(path):
             with open(path) as fobj:
                 for line in fobj:
+                    self.opened_text += line + "\n"
                     self.text_panel.my_text.WriteText(line)
+
+        # self.text_panel.my_text.WriteText(("\n" + "\n").join(self.groups))
+        # self.text_panel.my_text.WriteText(("\n" + "\n").join(self.words_to_highlight))
+        # self.text_panel.my_text.WriteText(self.opened_text + "\n" + "\n")
+        # self.text_panel.my_text.WriteText(f"index is: {search_words_in_txt(self.opened_text)}")
+
+        self.get_positions()
+        self.highlight_words()
+
+
+
+    #     self.do_regex()
+    #
+    # def do_regex(self):
+    #     # Setup regex
+    #     self.patterns = [r'\b' + word + r'\b' for word in self.words_to_highlight]
+    #     self.re_highlight = re.compile('(' + '|'.join(p for p in self.patterns) + ')+', re.IGNORECASE)
+    #
+    #     print(f'patterns: {self.patterns}')
+    #     print(f're_highlight: {self.re_highlight}')
+
+    # def highlight_words(self):
+    #     for para in self.opened_text:
+    #         text_item = para.text
+    #         if len(self.re_highlight.findall(text_item)) > 0:
+    #             matches = self.re_highlight.finditer(text_item)
+    #             para.text = ''
+    #             p3 = 0
+    #             for match in matches:
+    #                 p1 = p3
+    #                 p2, p3 = match.span()
+    #                 para.add_run(text_item[p1:p2])
+    #                 run = para.add_run(text_item[p2:p3])
+    #                 run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+    #             para.add_run(text_item[p3:])
+
+    def get_positions(self):
+        pos = 0
+        transformed_text = self.opened_text.replace("\n", " ").split(" ")
+        transformed_text = filter(None, transformed_text)
+        # print(f'transformed_text is: {self.opened_text.rstrip("\n")} \n')
+        # print(f'transformed_text is: {transformed_text} \n')
+        for word in transformed_text:
+            clean_word = " ".join(re.findall("[a-zA-Z]+", word))
+            # print(f'word is: {word} \n')
+            if clean_word in self.words_to_highlight:
+                t = (pos, pos + len(clean_word))
+                self.pos_list.append(t)
+            pos += len(word) + 1
+
+    def highlight_words(self):
+        for t in self.pos_list:
+            self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", "YELLOW")))
+
+        self.text_panel.my_text.SetStyle((0, 3), rt.RichTextAttr(wx.TextAttr("BLACK", "YELLOW")))
 
     def on_undo(self, e):
         if 1 < self.undo_redo_n <= UNDOS_ALLOWED:
@@ -172,11 +258,59 @@ class Highlighter(wx.Frame):
         tbar.AddSeparator()
         tbar.Realize()
 
+
+def search_words_in_txt(text):
+
+    word = 'machine'
+    index = text.split().index(word)
+
+    position = 0
+    for i, word in enumerate(text):
+        position += (1 + len(word))
+        if i >= index:
+            break
+    return position
+
+
+
+
+
+
+
+def get_expressions_from_json():
+    with open("json.txt") as json_file:
+        data = json.load(json_file)
+        expressions_list_items = data.items()
+        expressions_list, groups, words = [], [], []
+        for key, value in expressions_list_items:
+            groups.append(key)
+            expressions_list.append(value)
+        # print(f'expressions_list: {expressions_list} \n')
+        list_text = [item for sublist in expressions_list for item in sublist]
+        for text in list_text:
+            words_temp = re.findall('[^\W\d_]+', text)
+            words.extend(words_temp)
+        # list_text = [item for sublist in expressions_list for item in sublist]
+        print(f'groups are: {groups} \n words are: {words}')
+        return groups, words
+
+
 def start_app():
+    get_expressions_from_json()
     highlighter = wx.App()
     frame = Highlighter(None, title='Text Highlighter')
     frame.Show()
     highlighter.MainLoop()
 
-
 start_app()
+
+
+
+"""
+Json Functions
+"""
+
+# json = '{“machine group“: [“coffee machine“, “product“, “machine“], “button group“: [“Power button“, “Control Knob”]}'
+
+
+
