@@ -5,15 +5,12 @@ import os
 import wx
 import wx.richtext as rt
 
-
 APP_EXIT = 1
 APP_OPEN = 2
 APP_SAVE = 3
 APP_NEW = 4
 
 UNDOS_ALLOWED = 10
-
-
 
 class RichTextPanel(wx.Panel):
 
@@ -58,9 +55,7 @@ class Highlighter(wx.Frame):
         menu_bar = wx.MenuBar()
         file_menu = wx.Menu()
 
-        # oren
         self.undo_redo_n = UNDOS_ALLOWED
-        # oren
 
         new_menu_item = wx.MenuItem(file_menu, APP_NEW, '&New\tCtrl+N')
         open_menu_item = wx.MenuItem(file_menu, APP_OPEN, '&Open\tCtrl+O')
@@ -139,11 +134,6 @@ class Highlighter(wx.Frame):
         if self.undo_redo_n == UNDOS_ALLOWED:
             self.toolbar.EnableTool(wx.ID_REDO, False)
 
-
-
-
-
-
     def MakeToolBar(self):
 
         def doBind(item, handler, updateUI=None):
@@ -158,15 +148,15 @@ class Highlighter(wx.Frame):
         finish_icon = wx.Bitmap('Icons\\finish.png')
         redo_icon = wx.Bitmap('Icons\\redo.png')
         undo_icon = wx.Bitmap('Icons\\undo.png')
+        cancel_icon = wx.Bitmap('Icons\\cancel.png')
 
         tbar = self.toolbar
         doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'),self.on_open)
         tbar.AddTool(-1, 'Save', save_icon, shortHelp='Save File')
-        tbar.AddTool(-1, 'Only This', only_this_icon, shortHelp='Focus on the selected feature')
-        tbar.AddTool(-1, 'Show All', show_all_icon, shortHelp='Restore')
-
         tundo = tbar.AddTool(wx.ID_UNDO, 'Undo', undo_icon, shortHelp='Undo')
         tredo = tbar.AddTool(wx.ID_REDO, 'Redo', redo_icon, shortHelp='Redo')
+        tbar.AddTool(-1, 'Only This', only_this_icon, shortHelp='Focus on the selected feature')
+        tbar.AddTool(-1, 'Show All', show_all_icon, shortHelp='Restore')
 
         tbar.EnableTool(wx.ID_REDO, False)
 
@@ -175,12 +165,12 @@ class Highlighter(wx.Frame):
 
         finish = tbar.AddTool(-1, 'Finish', finish_icon, shortHelp='Finish session')
         doBind(finish, self.on_quit)
+
+        cancel = tbar.AddTool(-1, 'Cancel', cancel_icon, shortHelp='Cancel all changed made')
+        doBind(cancel, self.on_quit)
         
         tbar.AddSeparator()
         tbar.Realize()
-
-
-
 
 def start_app():
     highlighter = wx.App()

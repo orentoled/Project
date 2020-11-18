@@ -25,7 +25,6 @@ class NLPInObject:
 
     def get_words_to_mark(self):
         for key in expressions_dict:
-            #print(key)
             for value in expressions_dict[key]:
                 value = value.replace(")", "")
                 value = value.replace("(", "")
