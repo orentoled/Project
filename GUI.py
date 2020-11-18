@@ -191,7 +191,7 @@ class Highlighter(wx.Frame):
         for word in transformed_text:
             clean_word = " ".join(re.findall("[a-zA-Z]+", word))
             # print(f'word is: {word} \n')
-            if clean_word in self.words_to_highlight:
+            if clean_word.lower() in self.words_to_highlight:
                 t = (pos, pos + len(clean_word))
                 self.pos_list.append(t)
             pos += len(word) + 1
@@ -290,6 +290,7 @@ def get_expressions_from_json():
         for text in list_text:
             words_temp = re.findall('[^\W\d_]+', text)
             words.extend(words_temp)
+        words = [x.lower() for x in words]
         # list_text = [item for sublist in expressions_list for item in sublist]
         print(f'groups are: {groups} \n words are: {words}')
         return groups, words
