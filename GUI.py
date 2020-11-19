@@ -6,11 +6,15 @@ import os
 import json
 import wx
 import wx.richtext as rt
+from docx import Document
+import io
+import textract
+import pypandoc
+from bs4 import BeautifulSoup
 
-# from docx import Document
 # from docx.shared import Inches
 # from docx.enum.text import WD_COLOR_INDEX
-
+from idna import unicode
 
 APP_EXIT = 1
 APP_OPEN = 2
@@ -39,7 +43,7 @@ class RichTextPanel(wx.Panel):
         self.SetSizer(sizer)
 
     def on_open(self, event):
-        wildcard = "TXT files (*.txt)|*.txt"
+        wildcard = "TXT files (*.txt)|*.txt|*.docx"
         dialog = wx.FileDialog(self, "Open Text Files", wildcard=wildcard,
                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
 
@@ -132,7 +136,8 @@ class Highlighter(wx.Frame):
         self.Close()
 
     def on_open(self, event):
-        wildcard = "TXT files (*.txt)|*.txt"
+
+        wildcard = "TXT and DOC files (*.txt;*.docx;*.doc)|*.txt;*.docx;*.doc"
         dialog = wx.FileDialog(self, "Open Text Files", wildcard=wildcard,
                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
 
@@ -140,12 +145,10 @@ class Highlighter(wx.Frame):
             return
 
         path = dialog.GetPath()
+        print(path)
         self.groups, self.words_to_highlight = get_expressions_from_json()
         if os.path.exists(path):
-            with open(path) as fobj:
-                for line in fobj:
-                    self.opened_text += line + "\n"
-                    self.text_panel.my_text.WriteText(line)
+            convert_word_to_txt_and_open(self, path)
 
         # self.text_panel.my_text.WriteText(("\n" + "\n").join(self.groups))
         # self.text_panel.my_text.WriteText(("\n" + "\n").join(self.words_to_highlight))
@@ -271,8 +274,60 @@ def search_words_in_txt(text):
             break
     return position
 
+def convert_word_to_txt_and_open(self, path):
+    relevant_path = path.split("\\")[-1]
+    filename = relevant_path.split(".")[-2]
+    fileExtension = relevant_path.split(".")[-1]
+    path_without_type = path.split(".")[-2]
+    word_extenstions = ["docx", "doc", "DOCX", "DOC"]
+    if fileExtension in word_extenstions:
+        output = handle_files(self, path_without_type, fileExtension)
+        # text = BeautifulSoup(output, features="lxml").get_text('\n')
+        # self.text_panel.my_text.WriteText(text)
+        self.text_panel.my_text.WriteText(output)
+        for line in output:
+            self.opened_text += line + "\n"
+            # self.text_panel.my_text.WriteText(line)
+        # content = textract.process(f'{path}', encoding='utf-8')
+        # textFilename = path_without_type + ".txt"
+        # write_text_file = open(textFilename, "wb")
+        # write_text_file.write(content)
+        # write_text_file.close()
+        # with open(textFilename, encoding='utf-8') as fobj:
+        #     for line in fobj:
+        #         self.opened_text += line + "\n"
+        #         self.text_panel.my_text.WriteText(line)
 
 
+        # docxFilename = path
+        # # print(docxFilename)
+        # document = Document(docxFilename)
+        # textFilename = path_without_type + ".txt"
+        # with io.open(textFilename, "w", encoding="utf-8") as textFile:
+        #     for para in document.paragraphs:
+        #         textFile.write(unicode(para.text))
+        # with open(textFilename, encoding='utf-8', errors='ignore') as fobj:
+        #     for line in fobj:
+        #         self.opened_text += line + "\n"
+        #         self.text_panel.my_text.WriteText(line)
+
+        # if os.path.exists(textFilename):
+        #     os.remove(textFilename)
+    else:
+        with open(path, encoding='utf-8', errors='ignore') as fobj:
+            for line in fobj:
+                self.opened_text += line + "\n"
+                self.text_panel.my_text.WriteText(line)
+
+def handle_files(self, path, file_extension):
+    print(f'{path}.{file_extension}')
+    output = pypandoc.convert_file(f'{path}.{file_extension.lower()}', 'plain')
+    return output
+    # doc_extentions = ["doc", "DOC"]
+    # docx_extentions = ["docx", "DOCX"]
+    # if file_extension in docx_extentions:
+    #
+    # elif file_extension in doc_extentions:
 
 
 
