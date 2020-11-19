@@ -37,7 +37,7 @@ class RichTextPanel(wx.Panel):
         wx.Panel.__init__(self, parent)
 
         self.my_text = rt.RichTextCtrl(self, style=wx.TE_MULTILINE | wx.VSCROLL | wx.HSCROLL)
-
+        self.parent = parent
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.my_text, 1, wx.ALL | wx.EXPAND)
@@ -68,18 +68,21 @@ class RichTextPanel(wx.Panel):
             end = start + len(paragraph)
             self.apply_tag((start, end))
         elif event_id == TAG_SENTENCE_ID:
-            sentence = self.find_sentence(caret_position)
+            sentence, x, y = self.find_sentence(caret_position)
             start = self.my_text.GetValue().find(sentence.strip())
             end = start + len(sentence.strip())
             self.apply_tag((start, end))
         elif event_id == TAG_WORD_ID:
             word = self.find_word(caret_position)
-            start = self.my_text.GetValue().find(word.strip())
-            end = start + len(word.strip())
-            self.apply_tag((start, end))
+            if word is not None:
+                clean_word = " ".join(re.findall("[a-zA-Z]+", word))
+                start = self.my_text.GetValue()[caret_position - 5:].find(word.strip()) + caret_position - 5
+                end = start + len(word.strip())
+                self.apply_tag((start, end), clean_word)
 
-    def apply_tag(self, position):
-        self.my_text.SetStyle(position[0], position[1], wx.TextAttr(colText=wx.WHITE, colBack=wx.BLUE))
+    def apply_tag(self, position, word=None):
+        if word.lower() in self.parent.words_to_highlight:
+            self.my_text.SetStyle(position[0], position[1], wx.TextAttr(colText=wx.WHITE, colBack=wx.BLUE))
 
     def find_paragraph(self, caret_position):
         paragraphs = self.my_text.GetValue().split("\n\n")
@@ -100,21 +103,25 @@ class RichTextPanel(wx.Panel):
             if self.my_text.GetValue()[end] == ".":
                 sentence += "."
             if start < caret_position < end:
-                return sentence
+                return sentence, start, end
 
     def find_word(self, caret_position):
-        words = self.find_sentence(caret_position).split(" ")
+        sentence, start, end = self.find_sentence(caret_position)
+        words = sentence[caret_position - start - 5:].split(" ")
         for word in words:
             word = word.strip()
-            start = self.my_text.GetValue().find(word)
-            end = start + len(word)
-            # append dot if applicable
-            if self.my_text.GetValue()[end] == "!":
-                word += "!"
-            elif self.my_text.GetValue()[end] == "?":
-                word += "?"
-            if start < caret_position < end:
-                return word
+            clean_word = " ".join(re.findall("[a-zA-Z]+", word))
+            if clean_word.lower() in self.parent.words_to_highlight:
+                start = self.my_text.GetValue()[caret_position - 5:].find(word) + caret_position - 5
+                end = start + len(word)
+                # append dot if applicable
+                if self.my_text.GetValue()[end] == "!":
+                    word += "!"
+                elif self.my_text.GetValue()[end] == "?":
+                    word += "?"
+                if start < caret_position < end:
+                    return word
+        return None
 
 
 
@@ -149,6 +156,8 @@ class Highlighter(wx.Frame):
         self.patterns = None
         self.re_highlight = None
         self.pos_list = []
+        self.group_expressions_dict = dict()
+        self.expressions_group_dict = dict()
 
 
 
@@ -222,7 +231,7 @@ class Highlighter(wx.Frame):
 
         path = dialog.GetPath()
         print(path)
-        self.groups, self.words_to_highlight = get_expressions_from_json()
+        self.groups, self.words_to_highlight = get_expressions_from_json(self)
         if os.path.exists(path):
             convert_word_to_txt_and_open(self, path)
 
@@ -277,10 +286,10 @@ class Highlighter(wx.Frame):
                 else:
                     t = (pos + 1, pos + len(clean_word) + 1)
                     self.pos_list.append(t)
-            print(f'word: {word} \n')
-            print(f'pos_init: {pos} \n')
+            # print(f'word: {word} \n')
+            # print(f'pos_init: {pos} \n')
             pos += len(word) + 1
-            print(f'pos_after: {pos} \n')
+            # print(f'pos_after: {pos} \n')
 
 
 
@@ -418,7 +427,7 @@ def handle_files(self, path, file_extension):
 
 
 
-def get_expressions_from_json():
+def get_expressions_from_json(self):
     with open("json.txt") as json_file:
         data = json.load(json_file)
         expressions_list_items = data.items()
@@ -426,6 +435,11 @@ def get_expressions_from_json():
         for key, value in expressions_list_items:
             groups.append(key)
             expressions_list.append(value)
+            self.group_expressions_dict[key] = value
+            for expression in value:
+                self.expressions_group_dict[expression] = key
+            print(self.expressions_group_dict)
+        print(self.group_expressions_dict)
         # print(f'expressions_list: {expressions_list} \n')
         list_text = [item for sublist in expressions_list for item in sublist]
         for text in list_text:
@@ -433,12 +447,12 @@ def get_expressions_from_json():
             words.extend(words_temp)
         words = [x.lower() for x in words]
         # list_text = [item for sublist in expressions_list for item in sublist]
-        print(f'groups are: {groups} \n words are: {words}')
+        # print(f'groups are: {groups} \n words are: {words}')
         return groups, words
 
 
 def start_app():
-    get_expressions_from_json()
+    # get_expressions_from_json()
     highlighter = wx.App()
     frame = Highlighter(None, title='Text Highlighter')
     frame.Show()
