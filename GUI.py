@@ -47,6 +47,7 @@ class RichTextPanel(wx.Panel):
         self.menu = wx.Menu()
         self.menu.Append(TAG_SENTENCE_ID, "tag sentence")
         self.menu.Append(TAG_PARAGRAPH_ID, "tag paragraph")
+        self.menu.Append(TAG_WORD_ID, "tag word")
         self.my_text.SetContextMenu(self.menu)
         self.SetSizerAndFit(sizer)
 
@@ -71,9 +72,14 @@ class RichTextPanel(wx.Panel):
             start = self.my_text.GetValue().find(sentence.strip())
             end = start + len(sentence.strip())
             self.apply_tag((start, end))
+        elif event_id == TAG_WORD_ID:
+            word = self.find_word(caret_position)
+            start = self.my_text.GetValue().find(word.strip())
+            end = start + len(word.strip())
+            self.apply_tag((start, end))
 
     def apply_tag(self, position):
-        self.my_text.SetStyle(position[0], position[1], wx.TextAttr(colText=wx.WHITE, colBack=wx.BLACK))
+        self.my_text.SetStyle(position[0], position[1], wx.TextAttr(colText=wx.WHITE, colBack=wx.BLUE))
 
     def find_paragraph(self, caret_position):
         paragraphs = self.my_text.GetValue().split("\n\n")
@@ -95,6 +101,22 @@ class RichTextPanel(wx.Panel):
                 sentence += "."
             if start < caret_position < end:
                 return sentence
+
+    def find_word(self, caret_position):
+        words = self.find_sentence(caret_position).split(" ")
+        for word in words:
+            word = word.strip()
+            start = self.my_text.GetValue().find(word)
+            end = start + len(word)
+            # append dot if applicable
+            if self.my_text.GetValue()[end] == "!":
+                word += "!"
+            elif self.my_text.GetValue()[end] == "?":
+                word += "?"
+            if start < caret_position < end:
+                return word
+
+
 
     def on_open(self, event):
         wildcard = "TXT files (*.txt)|*.txt|*.docx"
@@ -244,14 +266,24 @@ class Highlighter(wx.Frame):
         transformed_text = self.opened_text.replace("\n", " ").split(" ")
         transformed_text = filter(None, transformed_text)
         # print(f'transformed_text is: {self.opened_text.rstrip("\n")} \n')
-        # print(f'transformed_text is: {transformed_text} \n')
+        print(f'transformed_text is: {transformed_text} \n')
         for word in transformed_text:
             clean_word = " ".join(re.findall("[a-zA-Z]+", word))
-            # print(f'word is: {word} \n')
+            # print(f'word is: {clean_word} \n')
             if clean_word.lower() in self.words_to_highlight:
-                t = (pos, pos + len(clean_word))
-                self.pos_list.append(t)
+                if clean_word == word:
+                    t = (pos + 1, pos + len(word) + 1)
+                    self.pos_list.append(t)
+                else:
+                    t = (pos + 1, pos + len(clean_word) + 1)
+                    self.pos_list.append(t)
+            print(f'word: {word} \n')
+            print(f'pos_init: {pos} \n')
             pos += len(word) + 1
+            print(f'pos_after: {pos} \n')
+
+
+
 
     def highlight_words(self):
         for t in self.pos_list:
