@@ -16,15 +16,17 @@ from bs4 import BeautifulSoup
 # from docx.enum.text import WD_COLOR_INDEX
 from idna import unicode
 
+# event handling
 APP_EXIT = 1
 APP_OPEN = 2
 APP_SAVE = 3
 APP_NEW = 4
+TAG_SENTENCE_ID = 5
+TAG_PARAGRAPH_ID = 6
+TAG_WORD_ID = 7
+
 
 UNDOS_ALLOWED = 10
-
-
-
 
 
 
@@ -39,8 +41,60 @@ class RichTextPanel(wx.Panel):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.my_text, 1, wx.ALL | wx.EXPAND)
+        # sizer.Add(self.my_text, proportion=1, flag=wx.EXPAND)
+        # self.SetSizer(sizer)
 
-        self.SetSizer(sizer)
+        self.menu = wx.Menu()
+        self.menu.Append(TAG_SENTENCE_ID, "tag sentence")
+        self.menu.Append(TAG_PARAGRAPH_ID, "tag paragraph")
+        self.my_text.SetContextMenu(self.menu)
+        self.SetSizerAndFit(sizer)
+
+        self.Bind(wx.EVT_MENU, self.menu_event)
+
+    def menu_event(self, event):
+        """ handle context menu events """
+        event_id = event.GetId()
+        self.tag(event_id)
+
+    def tag(self, event_id):
+        # get caret position
+        caret_position = self.my_text.GetCaretPosition() + 1
+        # tag by event
+        if event_id == TAG_PARAGRAPH_ID:
+            paragraph = self.find_paragraph(caret_position)
+            start = self.my_text.GetValue().find(paragraph)
+            end = start + len(paragraph)
+            self.apply_tag((start, end))
+        elif event_id == TAG_SENTENCE_ID:
+            sentence = self.find_sentence(caret_position)
+            start = self.my_text.GetValue().find(sentence.strip())
+            end = start + len(sentence.strip())
+            self.apply_tag((start, end))
+
+    def apply_tag(self, position):
+        self.my_text.SetStyle(position[0], position[1], wx.TextAttr(colText=wx.WHITE, colBack=wx.BLACK))
+
+    def find_paragraph(self, caret_position):
+        paragraphs = self.my_text.GetValue().split("\n\n")
+        for paragraph in paragraphs:
+            paragraph = paragraph.strip()
+            start = self.my_text.GetValue().find(paragraph)
+            end = start + len(paragraph)
+            if start < caret_position < end:
+                return paragraph
+
+    def find_sentence(self, caret_position):
+        sentences = self.find_paragraph(caret_position).split(".")
+        for sentence in sentences:
+            sentence = sentence.strip()
+            start = self.my_text.GetValue().find(sentence)
+            end = start + len(sentence)
+            # append dot if applicable
+            if self.my_text.GetValue()[end] == ".":
+                sentence += "."
+            if start < caret_position < end:
+                return sentence
 
     def on_open(self, event):
         wildcard = "TXT files (*.txt)|*.txt|*.docx"
