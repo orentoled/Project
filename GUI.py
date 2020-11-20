@@ -24,9 +24,10 @@ APP_NEW = 4
 TAG_SENTENCE_ID = 5
 TAG_PARAGRAPH_ID = 6
 TAG_WORD_ID = 7
-
+ID_SHOW_ALL = 8
 
 UNDOS_ALLOWED = 10
+
 
 
 
@@ -72,17 +73,26 @@ class RichTextPanel(wx.Panel):
             start = self.my_text.GetValue().find(sentence.strip())
             end = start + len(sentence.strip())
             self.apply_tag((start, end))
+        # elif event_id == TAG_WORD_ID:
+        #     word = self.find_word(caret_position)
+        #     if word is not None:
+        #         clean_word = " ".join(re.findall("[a-zA-Z]+", word))
+        #         start = self.my_text.GetValue()[caret_position - 5:].find(word.strip()) + caret_position - 5
+        #         end = start + len(word.strip())
+        #         self.apply_tag((start, end), clean_word)
+
         elif event_id == TAG_WORD_ID:
-            word = self.find_word(caret_position)
+            # TODO fix that we can also mark two words
+            word = self.find_word_to_tag(caret_position)
             if word is not None:
                 clean_word = " ".join(re.findall("[a-zA-Z]+", word))
                 start = self.my_text.GetValue()[caret_position - 5:].find(word.strip()) + caret_position - 5
                 end = start + len(word.strip())
-                self.apply_tag((start, end), clean_word)
+                self.apply_tag((start, end), clean_word, wx.BLUE)
 
-    def apply_tag(self, position, word=None):
+    def apply_tag(self, position, word=None, color=wx.YELLOW):
         if word.lower() in self.parent.words_to_highlight:
-            self.my_text.SetStyle(position[0], position[1], wx.TextAttr(colText=wx.WHITE, colBack=wx.BLUE))
+            self.my_text.SetStyle(position[0], position[1], wx.TextAttr(colText=wx.BLACK, colBack=color))
 
     def find_paragraph(self, caret_position):
         paragraphs = self.my_text.GetValue().split("\n\n")
@@ -92,6 +102,20 @@ class RichTextPanel(wx.Panel):
             end = start + len(paragraph)
             if start < caret_position < end:
                 return paragraph
+
+    def find_word_to_tag(self, caret_position):
+        index = caret_position
+        text = self.my_text.GetValue()
+        while (('a' <= text[index] <= 'z') or ('A' <= text[index] <= 'Z')) and index >= 0:
+            # TODO '!', '.' etc.
+            index -= 1
+        if index != 0:
+            index += 1
+        word = ""
+        while ('a' <= text[index] <= 'z') or ('A' <= text[index] <= 'Z'):
+            word += text[index]
+            index += 1
+        return word
 
     def find_sentence(self, caret_position):
         sentences = self.find_paragraph(caret_position).split(".")
@@ -105,23 +129,23 @@ class RichTextPanel(wx.Panel):
             if start < caret_position < end:
                 return sentence, start, end
 
-    def find_word(self, caret_position):
-        sentence, start, end = self.find_sentence(caret_position)
-        words = sentence[caret_position - start - 5:].split(" ")
-        for word in words:
-            word = word.strip()
-            clean_word = " ".join(re.findall("[a-zA-Z]+", word))
-            if clean_word.lower() in self.parent.words_to_highlight:
-                start = self.my_text.GetValue()[caret_position - 5:].find(word) + caret_position - 5
-                end = start + len(word)
-                # append dot if applicable
-                if self.my_text.GetValue()[end] == "!":
-                    word += "!"
-                elif self.my_text.GetValue()[end] == "?":
-                    word += "?"
-                if start < caret_position < end:
-                    return word
-        return None
+    # def find_word(self, caret_position):
+    #     sentence, start, end = self.find_sentence(caret_position)
+    #     words = sentence[caret_position - start - 5:].split(" ")
+    #     for word in words:
+    #         word = word.strip()
+    #         clean_word = " ".join(re.findall("[a-zA-Z]+", word))
+    #         if clean_word.lower() in self.parent.words_to_highlight:
+    #             start = self.my_text.GetValue()[caret_position - 5:].find(word) + caret_position - 5
+    #             end = start + len(word)
+    #             # append dot if applicable
+    #             if self.my_text.GetValue()[end] == "!":
+    #                 word += "!"
+    #             elif self.my_text.GetValue()[end] == "?":
+    #                 word += "?"
+    #             if start < caret_position < end:
+    #                 return word
+    #     return None
 
 
 
@@ -158,17 +182,6 @@ class Highlighter(wx.Frame):
         self.pos_list = []
         self.group_expressions_dict = dict()
         self.expressions_group_dict = dict()
-
-
-
-        # self.text_panel.my_text.WriteText("This is BLUE background with WHITE text, This is RED background with BLACK text")
-        # self.text_panel.my_text.SetStyle((0, 41), rt.RichTextAttr(wx.TextAttr("WHITE", "BLUE")))
-        # self.text_panel.my_text.SetStyle((42, 79), rt.RichTextAttr(wx.TextAttr("BLACK", "RED")))
-
-
-
-
-
 
     def init_ui(self):
         menu_bar = wx.MenuBar()
@@ -220,8 +233,34 @@ class Highlighter(wx.Frame):
     def on_quit(self, e):
         self.Close()
 
-    def on_open(self, event):
+    def on_show_all(self, e):
+        self.highlight_words("YELLOW")
 
+    def on_only_this(self, e):
+        text = self.text_panel
+        caret_position = text.my_text.GetCaretPosition() + 1
+        word = self.find_word_to_tag(caret_position, self.opened_text)
+        if word is not None and word in self.words_to_highlight:
+            clean_word = " ".join(re.findall("[a-zA-Z]+", word))
+            start = text.my_text.GetValue()[caret_position - 5:].find(word.strip()) + caret_position - 5
+            end = start + len(word.strip())
+            self.highlight_words("LIGHT GREY")
+            text.apply_tag((start, end), clean_word, wx.YELLOW)
+
+    def find_word_to_tag(self, caret_position, text):
+        index = caret_position
+        while (('a' <= text[index] <= 'z') or ('A' <= text[index] <= 'Z')) and index >= 0:
+            # TODO '!', '.' etc.
+            index -= 1
+        if index != 0:
+            index += 1
+        word = ""
+        while ('a' <= text[index] <= 'z') or ('A' <= text[index] <= 'Z'):
+            word += text[index]
+            index += 1
+        return word
+
+    def on_open(self, event):
         wildcard = "TXT and DOC files (*.txt;*.docx;*.doc)|*.txt;*.docx;*.doc"
         dialog = wx.FileDialog(self, "Open Text Files", wildcard=wildcard,
                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
@@ -230,7 +269,6 @@ class Highlighter(wx.Frame):
             return
 
         path = dialog.GetPath()
-        print(path)
         self.groups, self.words_to_highlight = get_expressions_from_json(self)
         if os.path.exists(path):
             convert_word_to_txt_and_open(self, path)
@@ -241,7 +279,7 @@ class Highlighter(wx.Frame):
         # self.text_panel.my_text.WriteText(f"index is: {search_words_in_txt(self.opened_text)}")
 
         self.get_positions()
-        self.highlight_words()
+        self.highlight_words("YELLOW")
 
 
 
@@ -294,11 +332,10 @@ class Highlighter(wx.Frame):
 
 
 
-    def highlight_words(self):
+    def highlight_words(self, color):
         for t in self.pos_list:
-            self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", "YELLOW")))
+            self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
 
-        self.text_panel.my_text.SetStyle((0, 3), rt.RichTextAttr(wx.TextAttr("BLACK", "YELLOW")))
 
     def on_undo(self, e):
         if 1 < self.undo_redo_n <= UNDOS_ALLOWED:
@@ -339,8 +376,8 @@ class Highlighter(wx.Frame):
         tbar.AddTool(-1, 'Save', save_icon, shortHelp='Save File')
         tundo = tbar.AddTool(wx.ID_UNDO, 'Undo', undo_icon, shortHelp='Undo')
         tredo = tbar.AddTool(wx.ID_REDO, 'Redo', redo_icon, shortHelp='Redo')
-        tbar.AddTool(-1, 'Only This', only_this_icon, shortHelp='Focus on the selected feature')
-        tbar.AddTool(-1, 'Show All', show_all_icon, shortHelp='Restore')
+        only_this = tbar.AddTool(-1, 'Only This', only_this_icon, shortHelp='Focus on the selected feature')
+        show_all = tbar.AddTool(ID_SHOW_ALL, 'Show All', show_all_icon, shortHelp='Restore')
 
         tbar.EnableTool(wx.ID_REDO, False)
 
@@ -349,6 +386,9 @@ class Highlighter(wx.Frame):
 
         finish = tbar.AddTool(-1, 'Finish', finish_icon, shortHelp='Finish session')
         doBind(finish, self.on_quit)
+
+        doBind(only_this, self.on_only_this)
+        doBind(show_all, self.on_show_all)
 
         cancel = tbar.AddTool(-1, 'Cancel', cancel_icon, shortHelp='Cancel all changed made')
         doBind(cancel, self.on_quit)
@@ -374,8 +414,8 @@ def convert_word_to_txt_and_open(self, path):
     filename = relevant_path.split(".")[-2]
     fileExtension = relevant_path.split(".")[-1]
     path_without_type = path.split(".")[-2]
-    word_extenstions = ["docx", "doc", "DOCX", "DOC"]
-    if fileExtension in word_extenstions:
+    word_extensions = ["docx", "doc", "DOCX", "DOC"]
+    if fileExtension in word_extensions:
         output = handle_files(self, path_without_type, fileExtension)
         # text = BeautifulSoup(output, features="lxml").get_text('\n')
         # self.text_panel.my_text.WriteText(text)
