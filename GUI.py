@@ -46,8 +46,8 @@ class RichTextPanel(wx.Panel):
         # self.SetSizer(sizer)
 
         self.menu = wx.Menu()
-        self.menu.Append(TAG_SENTENCE_ID, "tag sentence")
-        self.menu.Append(TAG_PARAGRAPH_ID, "tag paragraph")
+        # self.menu.Append(TAG_SENTENCE_ID, "tag sentence")
+        # self.menu.Append(TAG_PARAGRAPH_ID, "tag paragraph")
         self.menu.Append(TAG_WORD_ID, "tag word")
         self.my_text.SetContextMenu(self.menu)
         self.SetSizerAndFit(sizer)
@@ -171,9 +171,8 @@ class Highlighter(wx.Frame):
         super(Highlighter, self).__init__(*args, **kwargs)
         self.SetTitle(kwargs['title'])
         self.text_panel = RichTextPanel(self)
+        self.combo = None
         self.toolbar = self.CreateToolBar(style=wx.TB_TEXT)
-        self.MakeToolBar()
-        self.init_ui()
         self.groups = None
         self.words_to_highlight = None
         self.opened_text = ""
@@ -182,12 +181,17 @@ class Highlighter(wx.Frame):
         self.pos_list = []
         self.group_expressions_dict = dict()
         self.expressions_group_dict = dict()
+        # self.timer = wx.Timer(self, TIMER_ID)
+        self.init_ui()
+        self.MakeToolBar()
 
     def init_ui(self):
         menu_bar = wx.MenuBar()
         file_menu = wx.Menu()
 
-        self.undo_redo_n = UNDOS_ALLOWED
+        self.text_panel.my_text.Bind(wx.EVT_LEFT_DCLICK, self.on_double_click)
+
+        # self.undo_redo_n = UNDOS_ALLOWED
 
         new_menu_item = wx.MenuItem(file_menu, APP_NEW, '&New\tCtrl+N')
         open_menu_item = wx.MenuItem(file_menu, APP_OPEN, '&Open\tCtrl+O')
@@ -223,14 +227,19 @@ class Highlighter(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.on_quit, id=APP_EXIT)
         self.Bind(wx.EVT_MENU, self.on_open, id=APP_OPEN)
+        self.Bind(wx.EVT_MENU, self.on_save, id=APP_SAVE)
 
         menu_bar.Append(file_menu, '&File')
         self.SetMenuBar(menu_bar)
 
         self.SetSize((700, 600))
         self.Centre()
-
+        self.groups, self.words_to_highlight = get_expressions_from_json(self)
     def on_quit(self, e):
+        self.Close()
+
+    def on_finish(self, e):
+        self.on_save(e)
         self.Close()
 
     def on_show_all(self, e):
@@ -281,7 +290,41 @@ class Highlighter(wx.Frame):
         self.get_positions()
         self.highlight_words("YELLOW")
 
+    def on_save(self, evt):
 
+        if not self.text_panel.my_text.GetFilename():
+            self.on_save_as(evt)
+            self.get_positions()
+            return
+
+        self.text_panel.my_text.SaveFile()
+        self.get_positions()
+
+    def on_save_as(self, evt):
+
+        wildcard, types = rt.RichTextBuffer.GetExtWildcard(save=True)
+
+        dlg = wx.FileDialog(self, "Choose a filename",
+                            wildcard=wildcard,
+                            style=wx.FC_SAVE)
+
+        if dlg.ShowModal() == wx.ID_OK:
+            path = dlg.GetPath()
+            if path:
+                file_type = types[dlg.GetFilterIndex()]
+                ext = rt.RichTextBuffer.FindHandlerByType(file_type).GetExtension()
+                if not path.endswith(ext):
+                    path += '.' + ext
+                self.text_panel.my_text.SaveFile(path, file_type)
+
+        dlg.Destroy()
+
+    def forward_event(self, evt):
+
+        # The RichTextCtrl can handle menu and update events for undo,
+        # redo, cut, copy, paste, delete, and select all, so just
+        # forward the event to it.
+        self.text_panel.my_text.ProcessEvent(evt)
 
     #     self.do_regex()
     #
@@ -309,28 +352,59 @@ class Highlighter(wx.Frame):
     #             para.add_run(text_item[p3:])
 
     def get_positions(self):
+        self.pos_list = []
         pos = 0
-        transformed_text = self.opened_text.replace("\n", " ").split(" ")
-        transformed_text = filter(None, transformed_text)
+        num_of_newline = 1
+        raw_text = self.text_panel.my_text.GetValue()
+        raw_text = self.text_panel.my_text.GetValue()
+        # raw_text = raw_text.split(" ")
+        transformed_text = self.text_panel.my_text.GetValue().replace("\n", " ").split(" ")
+        # transformed_text = list(filter(None, transformed_text))
+
         # print(f'transformed_text is: {self.opened_text.rstrip("\n")} \n')
-        print(f'transformed_text is: {transformed_text} \n')
+        # print(f'transformed_text is: {transformed_text} \n')
         for word in transformed_text:
-            clean_word = " ".join(re.findall("[a-zA-Z]+", word))
-            # print(f'word is: {clean_word} \n')
-            if clean_word.lower() in self.words_to_highlight:
-                if clean_word == word:
-                    t = (pos + 1, pos + len(word) + 1)
-                    self.pos_list.append(t)
-                else:
-                    t = (pos + 1, pos + len(clean_word) + 1)
-                    self.pos_list.append(t)
+            # if '\n' in word:
+            #     num_of_newline = len(word.splitlines())
+            #     words_after_split = word.replace("\n", " ").split(" ")
+            if word is not '':
+                clean_word = " ".join(re.findall("[a-zA-Z]+", word))
+                # print(f'word is: {clean_word} \n')
+                if clean_word.lower() in self.words_to_highlight:
+                    if clean_word == word:
+                        t = (pos + 1, pos + len(word) + 1)
+                        self.pos_list.append(t)
+                    else:
+                        t = (pos + 1, pos + len(clean_word) + 1)
+                        self.pos_list.append(t)
             # print(f'word: {word} \n')
             # print(f'pos_init: {pos} \n')
             pos += len(word) + 1
+            # num_of_newline = 1
             # print(f'pos_after: {pos} \n')
 
-
-
+    # def check_word_and_update_pos(self, word, pos):
+    # if word is not '':
+    #         clean_word = " ".join(re.findall("[a-zA-Z]+", word))
+    #         # print(f'word is: {clean_word} \n')
+    #         if clean_word.lower() in self.words_to_highlight:
+    #             if clean_word == word:
+    #                 t = (pos + 1, pos + len(word) + 1)
+    #                 self.pos_list.append(t)
+    #             else:
+    #                 t = (pos + 1, pos + len(clean_word) + 1)
+    #                 self.pos_list.append(t)
+    #
+    # for word in raw_text:
+    #     if '\n' in word:
+    #         num_of_newline = len(word.splitlines()) - 1
+    #         words_after_split = word.replace("\n", " ").split(" ")
+    #         words_after_split = list(filter(None, words_after_split))
+    #         for word2 in words_after_split:
+    #             check_word_and_update_pos(self, word2, pos)
+    #             pos += len(word2) + 1
+    #     else:
+    #         check_word_and_update_pos(self, word, pos)
 
     def highlight_words(self, color):
         for t in self.pos_list:
@@ -355,6 +429,20 @@ class Highlighter(wx.Frame):
         if self.undo_redo_n == UNDOS_ALLOWED:
             self.toolbar.EnableTool(wx.ID_REDO, False)
 
+    def on_double_click(self, e):
+        # self.timer.Stop()
+        caret_pos = self.text_panel.my_text.GetCaretPosition()
+        text = self.text_panel.my_text.GetValue()
+        current_word = self.find_word_to_tag(caret_pos, text)
+        if current_word in self.expressions_group_dict:
+            belong_to_group = self.expressions_group_dict[current_word]
+            group_index_in_list = self.groups.index(belong_to_group)
+            self.combo.SetSelection(group_index_in_list)
+        else:
+            return
+
+
+
     def MakeToolBar(self):
 
         def doBind(item, handler, updateUI=None):
@@ -372,28 +460,33 @@ class Highlighter(wx.Frame):
         cancel_icon = wx.Bitmap('Icons\\cancel.png')
 
         tbar = self.toolbar
-        doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'),self.on_open)
+        doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'), self.on_open)
         tbar.AddTool(-1, 'Save', save_icon, shortHelp='Save File')
         tundo = tbar.AddTool(wx.ID_UNDO, 'Undo', undo_icon, shortHelp='Undo')
         tredo = tbar.AddTool(wx.ID_REDO, 'Redo', redo_icon, shortHelp='Redo')
         only_this = tbar.AddTool(-1, 'Only This', only_this_icon, shortHelp='Focus on the selected feature')
         show_all = tbar.AddTool(ID_SHOW_ALL, 'Show All', show_all_icon, shortHelp='Restore')
 
-        tbar.EnableTool(wx.ID_REDO, False)
+        # tbar.EnableTool(wx.ID_REDO, False)
 
-        self.Bind(wx.EVT_TOOL, self.on_undo, tundo)
-        self.Bind(wx.EVT_TOOL, self.on_redo, tredo)
+        self.Bind(wx.EVT_TOOL, self.forward_event, tundo)
+        self.Bind(wx.EVT_TOOL, self.forward_event, tredo)
 
         finish = tbar.AddTool(-1, 'Finish', finish_icon, shortHelp='Finish session')
-        doBind(finish, self.on_quit)
+        doBind(finish, self.on_finish)
 
         doBind(only_this, self.on_only_this)
         doBind(show_all, self.on_show_all)
 
         cancel = tbar.AddTool(-1, 'Cancel', cancel_icon, shortHelp='Cancel all changed made')
         doBind(cancel, self.on_quit)
-        
+
         tbar.AddSeparator()
+
+
+        # tbar.Bind(wx.EVT_COMBOBOX, self.on_combo_select)
+        self.combo = wx.ComboBox(tbar, 555, value="", choices=self.groups)
+        tbar.AddControl(self.combo)
         tbar.Realize()
 
 
