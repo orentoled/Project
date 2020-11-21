@@ -37,7 +37,7 @@ class RichTextPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
-        self.my_text = rt.RichTextCtrl(self, style=wx.TE_MULTILINE | wx.VSCROLL | wx.HSCROLL)
+        self.my_text = rt.RichTextCtrl(self, style=wx.TE_MULTILINE | wx.VSCROLL | wx.HSCROLL | wx.richtext.RE_READONLY)
         self.parent = parent
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -147,8 +147,6 @@ class RichTextPanel(wx.Panel):
     #                 return word
     #     return None
 
-
-
     def on_open(self, event):
         wildcard = "TXT files (*.txt)|*.txt|*.docx"
         dialog = wx.FileDialog(self, "Open Text Files", wildcard=wildcard,
@@ -163,6 +161,10 @@ class RichTextPanel(wx.Panel):
             with open(path) as fobj:
                 for line in fobj:
                     self.my_text.WriteText(line)
+
+
+
+
 
 
 class Highlighter(wx.Frame):
@@ -184,6 +186,8 @@ class Highlighter(wx.Frame):
         # self.timer = wx.Timer(self, TIMER_ID)
         self.init_ui()
         self.MakeToolBar()
+
+
 
     def init_ui(self):
         menu_bar = wx.MenuBar()
@@ -235,6 +239,7 @@ class Highlighter(wx.Frame):
         self.SetSize((700, 600))
         self.Centre()
         self.groups, self.words_to_highlight = get_expressions_from_json(self)
+
     def on_quit(self, e):
         self.Close()
 
@@ -258,6 +263,9 @@ class Highlighter(wx.Frame):
 
     def find_word_to_tag(self, caret_position, text):
         index = caret_position
+        text_size = len(text)
+        if caret_position >= text_size - 1:
+            return None
         while (('a' <= text[index] <= 'z') or ('A' <= text[index] <= 'Z')) and index >= 0:
             # TODO '!', '.' etc.
             index -= 1
@@ -356,7 +364,6 @@ class Highlighter(wx.Frame):
         pos = 0
         num_of_newline = 1
         raw_text = self.text_panel.my_text.GetValue()
-        raw_text = self.text_panel.my_text.GetValue()
         # raw_text = raw_text.split(" ")
         transformed_text = self.text_panel.my_text.GetValue().replace("\n", " ").split(" ")
         # transformed_text = list(filter(None, transformed_text))
@@ -367,15 +374,15 @@ class Highlighter(wx.Frame):
             # if '\n' in word:
             #     num_of_newline = len(word.splitlines())
             #     words_after_split = word.replace("\n", " ").split(" ")
-            if word is not '':
+            if word != '':
                 clean_word = " ".join(re.findall("[a-zA-Z]+", word))
                 # print(f'word is: {clean_word} \n')
                 if clean_word.lower() in self.words_to_highlight:
                     if clean_word == word:
-                        t = (pos + 1, pos + len(word) + 1)
+                        t = (pos, pos + len(word))
                         self.pos_list.append(t)
                     else:
-                        t = (pos + 1, pos + len(clean_word) + 1)
+                        t = (pos, pos + len(clean_word))
                         self.pos_list.append(t)
             # print(f'word: {word} \n')
             # print(f'pos_init: {pos} \n')
@@ -409,6 +416,7 @@ class Highlighter(wx.Frame):
     def highlight_words(self, color):
         for t in self.pos_list:
             self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
+
 
 
     def on_undo(self, e):
@@ -548,7 +556,7 @@ def convert_word_to_txt_and_open(self, path):
                 self.text_panel.my_text.WriteText(line)
 
 def handle_files(self, path, file_extension):
-    print(f'{path}.{file_extension}')
+    # print(f'{path}.{file_extension}')
     output = pypandoc.convert_file(f'{path}.{file_extension.lower()}', 'plain')
     return output
     # doc_extentions = ["doc", "DOC"]
@@ -571,8 +579,8 @@ def get_expressions_from_json(self):
             self.group_expressions_dict[key] = value
             for expression in value:
                 self.expressions_group_dict[expression] = key
-            print(self.expressions_group_dict)
-        print(self.group_expressions_dict)
+        # print(self.expressions_group_dict)
+        # print(self.group_expressions_dict)
         # print(f'expressions_list: {expressions_list} \n')
         list_text = [item for sublist in expressions_list for item in sublist]
         for text in list_text:
