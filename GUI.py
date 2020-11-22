@@ -406,6 +406,7 @@ class Highlighter(wx.Frame):
     #         # print(f'pos_after: {pos} \n')
 
     def get_positions(self):
+        #TODO THE FIRST CARET POSITION DOESNT WORKING ON DOUBLE_CLICK
         self.pos_list = []
         self.groups_pos_list = []
         modified_text = ""
@@ -418,36 +419,41 @@ class Highlighter(wx.Frame):
                     t = (i, i + len(exp))
                     self.pos_list.append(t)
                     i += len(exp) - 1
-                    self.indices_range_to_exp_dict[t] = exp
                     break
             i += 1
 
-        list_of_pos_tuples = list(self.indices_range_to_exp_dict)
+        list_of_pos_tuples = list(self.pos_list)
         j = 0
         for t in list_of_pos_tuples:
             modified_text += raw_text[j: t[1]]
             j = t[1] + 1
             exp = raw_text[t[0]: t[1]]
-            # print(modified_text)
             modified_text += " " + self.expressions_group_dict[exp.lower()] + " "
-            # print(modified_text)
 
         self.pos_list = []
         i = 0
+        print(modified_text)
         while i < len(modified_text):
             for exp in self.expressions_to_highlight:
                 s = modified_text.lower()[i: i + len(exp)]
                 if s == exp:
                     t = (i, i + len(exp))
                     self.pos_list.append(t)
-                    i += len(exp) - 1
+                    i += len(exp) + 1
                     group = self.expressions_group_dict[exp]
-                    t2 = (i + 2, i + 2 + len(group))
+                    t2 = (i, i + len(group))
                     self.groups_pos_list.append(t2)
-                    i += len(group)  # - 1
+                    i += len(group)
                     self.indices_range_to_exp_dict[t] = exp
                     break
             i += 1
+
+        # print(self.pos_list)
+        # print(self.indices_range_to_exp_dict)
+        # print("INDICES :")
+        # print(self.indices_range_to_exp_dict)
+        # print("GROUPS :")
+        # print(self.groups_pos_list)
         self.text_panel.my_text.Clear()
         self.text_panel.my_text.WriteText(modified_text)
 
@@ -484,6 +490,7 @@ class Highlighter(wx.Frame):
             self.toolbar.EnableTool(wx.ID_REDO, False)
 
     def on_double_click(self, e):
+        # TODO WHY CARET POSITION IS STARTING AT -1??
         caret_pos = self.text_panel.my_text.GetCaretPosition()
         text = self.text_panel.my_text.GetValue()
         exp = None
@@ -494,6 +501,7 @@ class Highlighter(wx.Frame):
 
         if exp in self.expressions_group_dict:
             belong_to_group = self.expressions_group_dict[exp]
+            print(belong_to_group)
             group_index_in_list = self.groups.index(belong_to_group)
             self.combo.SetSelection(group_index_in_list)
         else:
