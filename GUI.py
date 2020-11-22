@@ -25,6 +25,10 @@ TAG_SENTENCE_ID = 5
 TAG_PARAGRAPH_ID = 6
 TAG_WORD_ID = 7
 ID_SHOW_ALL = 8
+RESTORE_TO_DEFAULT_ID = 9
+ONLY_THIS_ID = 10
+NEXT_INST_ID = 11
+PREV_INST_ID = 12
 
 UNDOS_ALLOWED = 10
 
@@ -46,9 +50,11 @@ class RichTextPanel(wx.Panel):
         # self.SetSizer(sizer)
 
         self.menu = wx.Menu()
-        # self.menu.Append(TAG_SENTENCE_ID, "tag sentence")
-        # self.menu.Append(TAG_PARAGRAPH_ID, "tag paragraph")
-        self.menu.Append(TAG_WORD_ID, "tag word")
+        # self.menu.Append(TAG_WORD_ID, "tag word")
+        self.menu.Append(RESTORE_TO_DEFAULT_ID, "Restore to default")
+        self.menu.Append(ONLY_THIS_ID, "Only this")
+        self.menu.Append(NEXT_INST_ID, "Next inst")
+        self.menu.Append(PREV_INST_ID, "Prev. inst")
         self.my_text.SetContextMenu(self.menu)
         self.SetSizerAndFit(sizer)
 
@@ -63,16 +69,16 @@ class RichTextPanel(wx.Panel):
         # get caret position
         caret_position = self.my_text.GetCaretPosition() + 1
         # tag by event
-        if event_id == TAG_PARAGRAPH_ID:
-            paragraph = self.find_paragraph(caret_position)
-            start = self.my_text.GetValue().find(paragraph)
-            end = start + len(paragraph)
-            self.apply_tag((start, end))
-        elif event_id == TAG_SENTENCE_ID:
-            sentence, x, y = self.find_sentence(caret_position)
-            start = self.my_text.GetValue().find(sentence.strip())
-            end = start + len(sentence.strip())
-            self.apply_tag((start, end))
+        # if event_id == TAG_PARAGRAPH_ID:
+        #     paragraph = self.find_paragraph(caret_position)
+        #     start = self.my_text.GetValue().find(paragraph)
+        #     end = start + len(paragraph)
+        #     self.apply_tag((start, end))
+        # elif event_id == TAG_SENTENCE_ID:
+        #     sentence, x, y = self.find_sentence(caret_position)
+        #     start = self.my_text.GetValue().find(sentence.strip())
+        #     end = start + len(sentence.strip())
+        #     self.apply_tag((start, end))
         # elif event_id == TAG_WORD_ID:
         #     word = self.find_word(caret_position)
         #     if word is not None:
@@ -81,7 +87,7 @@ class RichTextPanel(wx.Panel):
         #         end = start + len(word.strip())
         #         self.apply_tag((start, end), clean_word)
 
-        elif event_id == TAG_WORD_ID:
+        if event_id == TAG_WORD_ID:
             # TODO fix that we can also mark two words
             word = self.find_word_to_tag(caret_position)
             if word is not None:
@@ -90,8 +96,21 @@ class RichTextPanel(wx.Panel):
                 end = start + len(word.strip())
                 self.apply_tag((start, end), clean_word, wx.BLUE)
 
+        elif event_id == ONLY_THIS_ID:
+            exp = None
+            position = None
+            for pos in self.parent.indices_range_to_exp_dict:
+                if pos[0] <= caret_position <= pos[1]:
+                    exp = self.parent.indices_range_to_exp_dict[pos]
+                    position = pos
+                    break
+
+            if exp is not None and exp in self.parent.expressions_to_highlight:
+                self.parent.highlight_words("LIGHT GREY")
+                self.apply_tag(position, exp, wx.YELLOW)
+
     def apply_tag(self, position, word=None, color=wx.YELLOW):
-        if word.lower() in self.parent.words_to_highlight:
+        if word.lower() in self.parent.expressions_to_highlight:
             self.my_text.SetStyle(position[0], position[1], wx.TextAttr(colText=wx.BLACK, colBack=color))
 
     def find_paragraph(self, caret_position):
@@ -163,12 +182,7 @@ class RichTextPanel(wx.Panel):
                     self.my_text.WriteText(line)
 
 
-
-
-
-
 class Highlighter(wx.Frame):
-
     def __init__(self, *args, **kwargs):
         super(Highlighter, self).__init__(*args, **kwargs)
         self.SetTitle(kwargs['title'])
@@ -177,17 +191,17 @@ class Highlighter(wx.Frame):
         self.toolbar = self.CreateToolBar(style=wx.TB_TEXT)
         self.groups = None
         self.words_to_highlight = None
+        self.expressions_to_highlight = None
         self.opened_text = ""
         self.patterns = None
         self.re_highlight = None
         self.pos_list = []
         self.group_expressions_dict = dict()
         self.expressions_group_dict = dict()
+        self.indices_range_to_exp_dict = dict()
         # self.timer = wx.Timer(self, TIMER_ID)
         self.init_ui()
         self.MakeToolBar()
-
-
 
     def init_ui(self):
         menu_bar = wx.MenuBar()
@@ -249,17 +263,6 @@ class Highlighter(wx.Frame):
 
     def on_show_all(self, e):
         self.highlight_words("YELLOW")
-
-    def on_only_this(self, e):
-        text = self.text_panel
-        caret_position = text.my_text.GetCaretPosition() + 1
-        word = self.find_word_to_tag(caret_position, self.opened_text)
-        if word is not None and word in self.words_to_highlight:
-            clean_word = " ".join(re.findall("[a-zA-Z]+", word))
-            start = text.my_text.GetValue()[caret_position - 5:].find(word.strip()) + caret_position - 5
-            end = start + len(word.strip())
-            self.highlight_words("LIGHT GREY")
-            text.apply_tag((start, end), clean_word, wx.YELLOW)
 
     def find_word_to_tag(self, caret_position, text):
         index = caret_position
@@ -359,59 +362,51 @@ class Highlighter(wx.Frame):
     #                 run.font.highlight_color = WD_COLOR_INDEX.YELLOW
     #             para.add_run(text_item[p3:])
 
+    # def get_positions(self):
+    #     self.pos_list = []
+    #     pos = 0
+    #     num_of_newline = 1
+    #     raw_text = self.text_panel.my_text.GetValue()
+    #     # raw_text = raw_text.split(" ")
+    #     transformed_text = self.text_panel.my_text.GetValue().replace("\n", " ").split(" ")
+    #     # transformed_text = list(filter(None, transformed_text))
+    #
+    #     # print(f'transformed_text is: {self.opened_text.rstrip("\n")} \n')
+    #     # print(f'transformed_text is: {transformed_text} \n')
+    #     for word in transformed_text:
+    #         # if '\n' in word:
+    #         #     num_of_newline = len(word.splitlines())
+    #         #     words_after_split = word.replace("\n", " ").split(" ")
+    #         if word != '':
+    #             clean_word = " ".join(re.findall("[a-zA-Z]+", word))
+    #             # print(f'word is: {clean_word} \n')
+    #             if clean_word.lower() in self.words_to_highlight:
+    #                 if clean_word == word:
+    #                     t = (pos, pos + len(word))
+    #                     self.pos_list.append(t)
+    #                 else:
+    #                     t = (pos, pos + len(clean_word))
+    #                     self.pos_list.append(t)
+    #         # print(f'word: {word} \n')
+    #         # print(f'pos_init: {pos} \n')
+    #         pos += len(word) + 1
+    #         # num_of_newline = 1
+    #         # print(f'pos_after: {pos} \n')
+
     def get_positions(self):
         self.pos_list = []
-        pos = 0
-        num_of_newline = 1
         raw_text = self.text_panel.my_text.GetValue()
-        # raw_text = raw_text.split(" ")
-        transformed_text = self.text_panel.my_text.GetValue().replace("\n", " ").split(" ")
-        # transformed_text = list(filter(None, transformed_text))
-
-        # print(f'transformed_text is: {self.opened_text.rstrip("\n")} \n')
-        # print(f'transformed_text is: {transformed_text} \n')
-        for word in transformed_text:
-            # if '\n' in word:
-            #     num_of_newline = len(word.splitlines())
-            #     words_after_split = word.replace("\n", " ").split(" ")
-            if word != '':
-                clean_word = " ".join(re.findall("[a-zA-Z]+", word))
-                # print(f'word is: {clean_word} \n')
-                if clean_word.lower() in self.words_to_highlight:
-                    if clean_word == word:
-                        t = (pos, pos + len(word))
-                        self.pos_list.append(t)
-                    else:
-                        t = (pos, pos + len(clean_word))
-                        self.pos_list.append(t)
-            # print(f'word: {word} \n')
-            # print(f'pos_init: {pos} \n')
-            pos += len(word) + 1
-            # num_of_newline = 1
-            # print(f'pos_after: {pos} \n')
-
-    # def check_word_and_update_pos(self, word, pos):
-    # if word is not '':
-    #         clean_word = " ".join(re.findall("[a-zA-Z]+", word))
-    #         # print(f'word is: {clean_word} \n')
-    #         if clean_word.lower() in self.words_to_highlight:
-    #             if clean_word == word:
-    #                 t = (pos + 1, pos + len(word) + 1)
-    #                 self.pos_list.append(t)
-    #             else:
-    #                 t = (pos + 1, pos + len(clean_word) + 1)
-    #                 self.pos_list.append(t)
-    #
-    # for word in raw_text:
-    #     if '\n' in word:
-    #         num_of_newline = len(word.splitlines()) - 1
-    #         words_after_split = word.replace("\n", " ").split(" ")
-    #         words_after_split = list(filter(None, words_after_split))
-    #         for word2 in words_after_split:
-    #             check_word_and_update_pos(self, word2, pos)
-    #             pos += len(word2) + 1
-    #     else:
-    #         check_word_and_update_pos(self, word, pos)
+        i = 0
+        while i < len(raw_text):
+            for exp in self.expressions_to_highlight:
+                s = raw_text.lower()[i: i + len(exp)]
+                if s == exp:
+                    t = (i, i + len(exp))
+                    self.pos_list.append(t)
+                    i += len(exp) - 1
+                    self.indices_range_to_exp_dict[t] = exp
+                    break
+            i += 1
 
     def highlight_words(self, color):
         for t in self.pos_list:
@@ -438,18 +433,20 @@ class Highlighter(wx.Frame):
             self.toolbar.EnableTool(wx.ID_REDO, False)
 
     def on_double_click(self, e):
-        # self.timer.Stop()
         caret_pos = self.text_panel.my_text.GetCaretPosition()
         text = self.text_panel.my_text.GetValue()
-        current_word = self.find_word_to_tag(caret_pos, text)
-        if current_word in self.expressions_group_dict:
-            belong_to_group = self.expressions_group_dict[current_word]
+        exp = None
+        for position in self.indices_range_to_exp_dict:
+            if position[0] <= caret_pos <= position[1]:
+                exp = self.indices_range_to_exp_dict[position]
+                break
+
+        if exp in self.expressions_group_dict:
+            belong_to_group = self.expressions_group_dict[exp]
             group_index_in_list = self.groups.index(belong_to_group)
             self.combo.SetSelection(group_index_in_list)
         else:
             return
-
-
 
     def MakeToolBar(self):
 
@@ -460,7 +457,6 @@ class Highlighter(wx.Frame):
 
         open_icon = wx.Bitmap('Icons\\open.png')
         save_icon = wx.Bitmap('Icons\\save2.png')
-        only_this_icon = wx.Bitmap('Icons\\spotlight.png')
         show_all_icon = wx.Bitmap('Icons\\show.png')
         finish_icon = wx.Bitmap('Icons\\finish.png')
         redo_icon = wx.Bitmap('Icons\\redo.png')
@@ -472,7 +468,6 @@ class Highlighter(wx.Frame):
         tbar.AddTool(-1, 'Save', save_icon, shortHelp='Save File')
         tundo = tbar.AddTool(wx.ID_UNDO, 'Undo', undo_icon, shortHelp='Undo')
         tredo = tbar.AddTool(wx.ID_REDO, 'Redo', redo_icon, shortHelp='Redo')
-        only_this = tbar.AddTool(-1, 'Only This', only_this_icon, shortHelp='Focus on the selected feature')
         show_all = tbar.AddTool(ID_SHOW_ALL, 'Show All', show_all_icon, shortHelp='Restore')
 
         # tbar.EnableTool(wx.ID_REDO, False)
@@ -483,7 +478,6 @@ class Highlighter(wx.Frame):
         finish = tbar.AddTool(-1, 'Finish', finish_icon, shortHelp='Finish session')
         doBind(finish, self.on_finish)
 
-        doBind(only_this, self.on_only_this)
         doBind(show_all, self.on_show_all)
 
         cancel = tbar.AddTool(-1, 'Cancel', cancel_icon, shortHelp='Cancel all changed made')
@@ -578,7 +572,7 @@ def get_expressions_from_json(self):
             expressions_list.append(value)
             self.group_expressions_dict[key] = value
             for expression in value:
-                self.expressions_group_dict[expression] = key
+                self.expressions_group_dict[expression.lower()] = key
         # print(self.expressions_group_dict)
         # print(self.group_expressions_dict)
         # print(f'expressions_list: {expressions_list} \n')
@@ -586,10 +580,33 @@ def get_expressions_from_json(self):
         for text in list_text:
             words_temp = re.findall('[^\W\d_]+', text)
             words.extend(words_temp)
+        self.expressions_to_highlight = [word for word in list_text]
+        self.expressions_to_highlight = [x.lower() for x in self.expressions_to_highlight]
         words = [x.lower() for x in words]
         # list_text = [item for sublist in expressions_list for item in sublist]
         # print(f'groups are: {groups} \n words are: {words}')
         return groups, words
+
+# def get_expressions_from_json(self):
+#     with open("json.txt") as json_file:
+#         data = json.load(json_file)
+#         expressions_list_items = data.items()
+#         expressions_list, groups, words = [], [], []
+#         for key, value in expressions_list_items:
+#             groups.append(key)
+#             expressions_list.append(value)
+#             self.group_expressions_dict[key] = value
+#             for expression in value:
+#                 self.expressions_group_dict[expression] = key
+#         # print(self.expressions_group_dict)
+#         # print(self.group_expressions_dict)
+#         # print(f'expressions_list: {expressions_list} \n')
+#         list_text = [item for sublist in expressions_list for item in sublist]
+#         words = [word for word in list_text]
+#         words = [x.lower() for x in words]
+#         # list_text = [item for sublist in expressions_list for item in sublist]
+#         # print(f'groups are: {groups} \n words are: {words}')
+#         return groups, words
 
 
 def start_app():
