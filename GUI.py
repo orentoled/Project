@@ -41,7 +41,8 @@ class RichTextPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
-        self.my_text = rt.RichTextCtrl(self, style=wx.TE_MULTILINE | wx.VSCROLL | wx.HSCROLL | wx.richtext.RE_READONLY)
+        self.my_text = rt.RichTextCtrl(self, style=wx.TE_MULTILINE | wx.VSCROLL |
+                                       wx.HSCROLL | wx.richtext.RE_READONLY)
         self.parent = parent
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -56,6 +57,10 @@ class RichTextPanel(wx.Panel):
         self.menu.Append(NEXT_INST_ID, "Next inst")
         self.menu.Append(PREV_INST_ID, "Prev. inst")
         self.my_text.SetContextMenu(self.menu)
+
+        # attr_fontsize = wx.richtext.RichTextAttr()
+        # attr_fontsize.SetFontSize(wx.FONTSIZE_MEDIUM)
+        # self.my_text.SetBasicStyle(attr_fontsize)
         self.SetSizerAndFit(sizer)
 
         self.Bind(wx.EVT_MENU, self.menu_event)
@@ -182,6 +187,9 @@ class RichTextPanel(wx.Panel):
                     self.my_text.WriteText(line)
 
 
+
+
+
 class Highlighter(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(Highlighter, self).__init__(*args, **kwargs)
@@ -196,6 +204,7 @@ class Highlighter(wx.Frame):
         self.patterns = None
         self.re_highlight = None
         self.pos_list = []
+        self.groups_pos_list = []
         self.group_expressions_dict = dict()
         self.expressions_group_dict = dict()
         self.indices_range_to_exp_dict = dict()
@@ -280,6 +289,7 @@ class Highlighter(wx.Frame):
             index += 1
         return word
 
+
     def on_open(self, event):
         wildcard = "TXT and DOC files (*.txt;*.docx;*.doc)|*.txt;*.docx;*.doc"
         dialog = wx.FileDialog(self, "Open Text Files", wildcard=wildcard,
@@ -293,6 +303,7 @@ class Highlighter(wx.Frame):
         if os.path.exists(path):
             convert_word_to_txt_and_open(self, path)
 
+        # print(f'{self.text_panel.my_text.GetValue()}')
         # self.text_panel.my_text.WriteText(("\n" + "\n").join(self.groups))
         # self.text_panel.my_text.WriteText(("\n" + "\n").join(self.words_to_highlight))
         # self.text_panel.my_text.WriteText(self.opened_text + "\n" + "\n")
@@ -300,6 +311,7 @@ class Highlighter(wx.Frame):
 
         self.get_positions()
         self.highlight_words("YELLOW")
+        self.mark_groups("RED")
 
     def on_save(self, evt):
 
@@ -395,6 +407,8 @@ class Highlighter(wx.Frame):
 
     def get_positions(self):
         self.pos_list = []
+        self.groups_pos_list = []
+        modified_text = ""
         raw_text = self.text_panel.my_text.GetValue()
         i = 0
         while i < len(raw_text):
@@ -408,10 +422,47 @@ class Highlighter(wx.Frame):
                     break
             i += 1
 
+        list_of_pos_tuples = list(self.indices_range_to_exp_dict)
+        j = 0
+        for t in list_of_pos_tuples:
+            modified_text += raw_text[j: t[1]]
+            j = t[1] + 1
+            exp = raw_text[t[0]: t[1]]
+            # print(modified_text)
+            modified_text += " " + self.expressions_group_dict[exp.lower()] + " "
+            # print(modified_text)
+
+        self.pos_list = []
+        i = 0
+        while i < len(modified_text):
+            for exp in self.expressions_to_highlight:
+                s = modified_text.lower()[i: i + len(exp)]
+                if s == exp:
+                    t = (i, i + len(exp))
+                    self.pos_list.append(t)
+                    i += len(exp) - 1
+                    group = self.expressions_group_dict[exp]
+                    t2 = (i + 2, i + 2 + len(group))
+                    self.groups_pos_list.append(t2)
+                    i += len(group)  # - 1
+                    self.indices_range_to_exp_dict[t] = exp
+                    break
+            i += 1
+        self.text_panel.my_text.Clear()
+        self.text_panel.my_text.WriteText(modified_text)
+
     def highlight_words(self, color):
         for t in self.pos_list:
             self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
 
+    def mark_groups(self, color):
+        attr_super = wx.richtext.RichTextAttr()
+        attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+        attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
+        attr_super.SetTextColour(wx.RED)
+        attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+        for t in self.groups_pos_list:
+            self.text_panel.my_text.SetStyle(t, attr_super)
 
 
     def on_undo(self, e):
