@@ -196,8 +196,10 @@ class Highlighter(wx.Frame):
         self.SetTitle(kwargs['title'])
         self.text_panel = RichTextPanel(self)
         self.combo = None
+        self.textbox = None
         self.toolbar = self.CreateToolBar(style=wx.TB_TEXT)
         self.groups = None
+        self.current_exp_selected = None
         self.words_to_highlight = None
         self.expressions_to_highlight = None
         self.opened_text = ""
@@ -259,7 +261,7 @@ class Highlighter(wx.Frame):
         menu_bar.Append(file_menu, '&File')
         self.SetMenuBar(menu_bar)
 
-        self.SetSize((700, 600))
+        self.SetSize((800, 700))
         self.Centre()
         self.groups, self.words_to_highlight = get_expressions_from_json(self)
 
@@ -410,7 +412,7 @@ class Highlighter(wx.Frame):
         self.pos_list = []
         self.groups_pos_list = []
         modified_text = ""
-        raw_text = self.text_panel.my_text.GetValue()
+        raw_text = self.opened_text
         i = 0
         while i < len(raw_text):
             for exp in self.expressions_to_highlight:
@@ -432,16 +434,16 @@ class Highlighter(wx.Frame):
 
         self.pos_list = []
         i = 0
-        print(modified_text)
+        # print(modified_text)
         while i < len(modified_text):
             for exp in self.expressions_to_highlight:
                 s = modified_text.lower()[i: i + len(exp)]
                 if s == exp:
                     t = (i, i + len(exp))
                     self.pos_list.append(t)
-                    i += len(exp) + 1
+                    i += len(exp)  # + 1
                     group = self.expressions_group_dict[exp]
-                    t2 = (i, i + len(group))
+                    t2 = (i, i + len(group) + 1)
                     self.groups_pos_list.append(t2)
                     i += len(group)
                     self.indices_range_to_exp_dict[t] = exp
@@ -460,6 +462,10 @@ class Highlighter(wx.Frame):
     def highlight_words(self, color):
         for t in self.pos_list:
             self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
+
+    def remove_highlight_words(self):
+        for t in self.pos_list:
+            self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
 
     def mark_groups(self, color):
         attr_super = wx.richtext.RichTextAttr()
@@ -497,6 +503,7 @@ class Highlighter(wx.Frame):
         for position in self.indices_range_to_exp_dict:
             if position[0] <= caret_pos <= position[1]:
                 exp = self.indices_range_to_exp_dict[position]
+                self.current_exp_selected = exp
                 break
 
         if exp in self.expressions_group_dict:
@@ -506,6 +513,36 @@ class Highlighter(wx.Frame):
             self.combo.SetSelection(group_index_in_list)
         else:
             return
+
+    def on_add_new(self, e):
+        combobox_value = self.combo.GetValue()
+        print(combobox_value)
+        if combobox_value not in self.group_expressions_dict:
+            self.group_expressions_dict[combobox_value] = []
+            self.groups.append(combobox_value)
+            self.combo.Append(combobox_value)
+        print(self.group_expressions_dict)
+
+    def on_tag_new_group(self, e):
+        combobox_value = self.combo.GetValue()
+        print(combobox_value)
+        if combobox_value not in self.groups:
+            wx.MessageDialog(self.text_panel, "This is not a valid group!", "Test",
+                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+        else:
+            current_group = self.expressions_group_dict[self.current_exp_selected]
+            wx.MessageDialog(self.text_panel, f"Change group from {current_group} to {combobox_value}?", "Test",
+                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+            current_group_exp_list = self.group_expressions_dict[current_group]
+            current_group_exp_list.remove(self.current_exp_selected)
+            self.expressions_group_dict[self.current_exp_selected] = combobox_value
+            self.group_expressions_dict[current_group] = current_group_exp_list
+            self.group_expressions_dict[combobox_value].append(self.current_exp_selected)
+            self.get_positions()
+            # self.remove_highlight_words()
+            self.highlight_words("YELLOW")
+            self.mark_groups("RED")
+        print(self.group_expressions_dict)
 
     def MakeToolBar(self):
 
@@ -521,6 +558,8 @@ class Highlighter(wx.Frame):
         redo_icon = wx.Bitmap('Icons\\redo.png')
         undo_icon = wx.Bitmap('Icons\\undo.png')
         cancel_icon = wx.Bitmap('Icons\\cancel.png')
+        new_icon = wx.Bitmap('Icons\\new.png')
+        tag_icon = wx.Bitmap('Icons\\submit.png')
 
         tbar = self.toolbar
         doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'), self.on_open)
@@ -543,11 +582,20 @@ class Highlighter(wx.Frame):
         doBind(cancel, self.on_quit)
 
         tbar.AddSeparator()
-
+        tbar.AddSeparator()
+        tbar.AddSeparator()
+        tbar.AddSeparator()
 
         # tbar.Bind(wx.EVT_COMBOBOX, self.on_combo_select)
-        self.combo = wx.ComboBox(tbar, 555, value="", choices=self.groups)
+        self.combo = wx.ComboBox(tbar, 555, value="", choices=self.groups, style=wx.TE_PROCESS_ENTER)
+        self.combo.Bind(wx.EVT_TEXT_ENTER, self.on_add_new)
         tbar.AddControl(self.combo)
+
+        tbar.AddSeparator()
+        add = tbar.AddTool(-1, 'Add Group', new_icon, shortHelp='Add New Group')
+        doBind(add, self.on_add_new)
+        add = tbar.AddTool(-1, 'Tag Group', tag_icon, shortHelp='Change Group')
+        doBind(add, self.on_tag_new_group)
         tbar.Realize()
 
 
