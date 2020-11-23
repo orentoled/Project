@@ -114,6 +114,61 @@ class RichTextPanel(wx.Panel):
                 self.parent.highlight_words("LIGHT GREY")
                 self.apply_tag(position, exp, wx.YELLOW)
 
+        elif event_id == RESTORE_TO_DEFAULT_ID:
+            exp = None
+            position = None
+            for pos in self.parent.indices_range_to_exp_dict:
+                if pos[0] <= caret_position <= pos[1]:
+                    exp = self.parent.indices_range_to_exp_dict[pos]
+                    position = pos
+                    break
+            default_group = self.parent.expressions_default_group_dict[exp]
+            current_group = self.parent.expressions_group_dict[exp]
+            wx.MessageDialog(self.parent, f"Restore group from {current_group} to {default_group}?", "Test",
+                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+            current_group_exp_list = self.parent.group_expressions_dict[current_group]
+            current_group_exp_list.remove(exp)
+            self.parent.expressions_group_dict[exp] = default_group
+            self.parent.group_expressions_dict[current_group] = current_group_exp_list
+            self.parent.group_expressions_dict[default_group].append(exp)
+            # self.remove_highlight_words()
+            self.parent.get_positions()
+            self.my_text.SetStyle((0, len(self.my_text.GetValue())),
+                                             rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
+
+            self.parent.highlight_words("YELLOW")
+            self.parent.mark_groups("RED")
+
+    def on_tag_new_group(self, e):
+        combobox_value = self.combo.GetValue()
+        current_group = self.expressions_group_dict[self.current_exp_selected]
+        # print("combo" + combobox_value)
+        # print("current" + current_group)
+        if combobox_value not in self.groups:
+            wx.MessageDialog(self.text_panel, "This is not a valid group!", "Test",
+                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+        elif current_group == combobox_value:
+            wx.MessageDialog(self.text_panel, "Same group was selected", "Test",
+                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+        else:
+
+            wx.MessageDialog(self.text_panel, f"Change group from {current_group} to {combobox_value}?", "Test",
+                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+            current_group_exp_list = self.group_expressions_dict[current_group]
+            print(self.current_exp_selected)
+            print(current_group_exp_list)
+            current_group_exp_list.remove(self.current_exp_selected)
+            self.expressions_group_dict[self.current_exp_selected] = combobox_value
+            self.group_expressions_dict[current_group] = current_group_exp_list
+            self.group_expressions_dict[combobox_value].append(self.current_exp_selected)
+            # self.remove_highlight_words()
+            self.get_positions()
+            self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())), rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
+
+            self.highlight_words("YELLOW")
+            self.mark_groups("RED")
+
+
     def apply_tag(self, position, word=None, color=wx.YELLOW):
         if word.lower() in self.parent.expressions_to_highlight:
             self.my_text.SetStyle(position[0], position[1], wx.TextAttr(colText=wx.BLACK, colBack=color))
@@ -210,6 +265,7 @@ class Highlighter(wx.Frame):
         self.group_expressions_dict = dict()
         self.expressions_group_dict = dict()
         self.indices_range_to_exp_dict = dict()
+        self.expressions_default_group_dict = dict()
         # self.timer = wx.Timer(self, TIMER_ID)
         self.init_ui()
         self.MakeToolBar()
@@ -450,12 +506,6 @@ class Highlighter(wx.Frame):
                     break
             i += 1
 
-        # print(self.pos_list)
-        # print(self.indices_range_to_exp_dict)
-        # print("INDICES :")
-        # print(self.indices_range_to_exp_dict)
-        # print("GROUPS :")
-        # print(self.groups_pos_list)
         self.text_panel.my_text.Clear()
         self.text_panel.my_text.WriteText(modified_text)
 
@@ -508,7 +558,6 @@ class Highlighter(wx.Frame):
 
         if exp in self.expressions_group_dict:
             belong_to_group = self.expressions_group_dict[exp]
-            print(belong_to_group)
             group_index_in_list = self.groups.index(belong_to_group)
             self.combo.SetSelection(group_index_in_list)
         else:
@@ -520,14 +569,12 @@ class Highlighter(wx.Frame):
         if combobox_value not in self.group_expressions_dict:
             wx.MessageDialog(self.text_panel, f"Add new group name {combobox_value} to groups?", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
-            self.group_expressions_dict[combobox_value] = []
+            self.group_expressions_dict[combobox_value.lower()] = []
             self.groups.append(combobox_value)
             self.combo.Append(combobox_value)
-        print(self.group_expressions_dict)
 
     def on_tag_new_group(self, e):
         combobox_value = self.combo.GetValue()
-        print(combobox_value)
         if combobox_value not in self.groups:
             wx.MessageDialog(self.text_panel, "This is not a valid group!", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
@@ -536,16 +583,18 @@ class Highlighter(wx.Frame):
             wx.MessageDialog(self.text_panel, f"Change group from {current_group} to {combobox_value}?", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
             current_group_exp_list = self.group_expressions_dict[current_group]
+            print(current_group_exp_list)
+            print(self.current_exp_selected)
             current_group_exp_list.remove(self.current_exp_selected)
             self.expressions_group_dict[self.current_exp_selected] = combobox_value
             self.group_expressions_dict[current_group] = current_group_exp_list
             self.group_expressions_dict[combobox_value].append(self.current_exp_selected)
-            self.remove_highlight_words()
+            # self.remove_highlight_words()
             self.get_positions()
-            # self.text_panel.my_text.SetBackgroundColour("WHITE")
+            self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())), rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
+
             self.highlight_words("YELLOW")
             self.mark_groups("RED")
-        print(self.group_expressions_dict)
 
     def MakeToolBar(self):
 
@@ -680,7 +729,8 @@ def get_expressions_from_json(self):
         for key, value in expressions_list_items:
             groups.append(key)
             expressions_list.append(value)
-            self.group_expressions_dict[key] = value
+            value_lower = [v.lower() for v in value]
+            self.group_expressions_dict[key.lower()] = value_lower
             for expression in value:
                 self.expressions_group_dict[expression.lower()] = key
         # print(self.expressions_group_dict)
@@ -695,6 +745,8 @@ def get_expressions_from_json(self):
         words = [x.lower() for x in words]
         # list_text = [item for sublist in expressions_list for item in sublist]
         # print(f'groups are: {groups} \n words are: {words}')
+        if not bool(self.expressions_default_group_dict):
+            self.expressions_default_group_dict = self.expressions_group_dict.copy()
         return groups, words
 
 # def get_expressions_from_json(self):
