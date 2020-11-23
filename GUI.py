@@ -109,23 +109,29 @@ class RichTextPanel(wx.Panel):
                 self.apply_tag(position, exp, wx.YELLOW)
 
         elif event_id == NEXT_INST_ID:
+            # TODO focus on word
             exp = None
             curr_exp = None
             position = None
             found = False
+            # find current position and next one is exists
             for pos in self.parent.indices_range_to_exp_dict:
                 if found:
                     exp = self.parent.indices_range_to_exp_dict[pos]
                     if curr_exp == exp:
                         position = pos
-                    break
+                        break
                 if pos[0] <= caret_position <= pos[1]:
                     curr_exp = self.parent.indices_range_to_exp_dict[pos]
                     found = True
-
-            if exp is not None and exp in self.parent.expressions_to_highlight:
+            if exp not in self.parent.expressions_to_highlight:
+                return
+            if position is not None:
                 self.parent.highlight_words("LIGHT GREY")
                 self.apply_tag(position, exp, wx.YELLOW)
+            else:
+                wx.MessageDialog(self.parent, "Last instance", "Test",
+                                 wx.OK | wx.ICON_WARNING).ShowModal()
 
         elif event_id == RESTORE_TO_DEFAULT_ID:
             exp = None
@@ -501,7 +507,6 @@ class Highlighter(wx.Frame):
                     i += len(exp) - 1
                     break
             i += 1
-
         list_of_pos_tuples = list(self.pos_list)
         j = 0
         for t in list_of_pos_tuples:
@@ -528,17 +533,13 @@ class Highlighter(wx.Frame):
                     self.indices_range_to_exp_dict[t] = exp
                     break
             i += 1
-
         self.text_panel.my_text.Clear()
         self.text_panel.my_text.WriteText(modified_text)
 
+    # this method highlights expressions in input color
     def highlight_words(self, color):
         for t in self.pos_list:
             self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
-
-    def remove_highlight_words(self):
-        for t in self.pos_list:
-            self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
 
     def mark_groups(self, color):
         attr_super = wx.richtext.RichTextAttr()
@@ -548,7 +549,6 @@ class Highlighter(wx.Frame):
         attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
         for t in self.groups_pos_list:
             self.text_panel.my_text.SetStyle(t, attr_super)
-
 
     def on_undo(self, e):
         if 1 < self.undo_redo_n <= UNDOS_ALLOWED:
@@ -569,34 +569,36 @@ class Highlighter(wx.Frame):
             self.toolbar.EnableTool(wx.ID_REDO, False)
 
     def on_double_click(self, e):
-        # TODO WHY CARET POSITION IS STARTING AT -1??
         caret_pos = self.text_panel.my_text.GetCaretPosition()
-        print(caret_pos)
-        text = self.text_panel.my_text.GetValue()
         exp = None
+        # find expression by caret position
         for position in self.indices_range_to_exp_dict:
             if position[0] <= caret_pos <= position[1]:
                 exp = self.indices_range_to_exp_dict[position]
                 self.current_exp_selected = exp
                 break
-
         if exp in self.expressions_group_dict:
+            # valid expression
             belong_to_group = self.expressions_group_dict[exp]
             group_index_in_list = self.groups.index(belong_to_group)
             self.combo.SetSelection(group_index_in_list)
         else:
+            # not a valid expression
             return
 
     def on_add_new(self, e):
         combobox_value = self.combo.GetValue()
         if combobox_value.lower() not in self.group_expressions_dict:
+            # adding group
             wx.MessageDialog(self.text_panel, f"Add new group name {combobox_value}?", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+            # updating internal data
             self.group_expressions_dict[combobox_value.lower()] = []
             self.groups.append(combobox_value)
             self.combo.Append(combobox_value)
         else:
-            wx.MessageDialog(self.text_panel, "Group exists", "Test",
+            # group already exists, warning
+            wx.MessageDialog(self.text_panel, "Group already exists", "Test",
                              wx.OK | wx.ICON_WARNING).ShowModal()
 
     def on_tag_new_group(self, e):
@@ -617,7 +619,6 @@ class Highlighter(wx.Frame):
             self.expressions_group_dict[self.current_exp_selected.lower()] = combobox_value
             self.group_expressions_dict[current_group.lower()] = current_group_exp_list
             self.group_expressions_dict[combobox_value.lower()].append(self.current_exp_selected.lower())
-            # self.remove_highlight_words()
             self.get_positions()
             self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())), rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
 
@@ -776,28 +777,6 @@ def get_expressions_from_json(self):
         if not bool(self.expressions_default_group_dict):
             self.expressions_default_group_dict = self.expressions_group_dict.copy()
         return groups, words
-
-# def get_expressions_from_json(self):
-#     with open("json.txt") as json_file:
-#         data = json.load(json_file)
-#         expressions_list_items = data.items()
-#         expressions_list, groups, words = [], [], []
-#         for key, value in expressions_list_items:
-#             groups.append(key)
-#             expressions_list.append(value)
-#             self.group_expressions_dict[key] = value
-#             for expression in value:
-#                 self.expressions_group_dict[expression] = key
-#         # print(self.expressions_group_dict)
-#         # print(self.group_expressions_dict)
-#         # print(f'expressions_list: {expressions_list} \n')
-#         list_text = [item for sublist in expressions_list for item in sublist]
-#         words = [word for word in list_text]
-#         words = [x.lower() for x in words]
-#         # list_text = [item for sublist in expressions_list for item in sublist]
-#         # print(f'groups are: {groups} \n words are: {words}')
-#         return groups, words
-
 
 def start_app():
     # get_expressions_from_json()
