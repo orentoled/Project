@@ -33,9 +33,6 @@ PREV_INST_ID = 12
 UNDOS_ALLOWED = 10
 
 
-
-
-
 class RichTextPanel(wx.Panel):
 
     def __init__(self, parent):
@@ -56,11 +53,10 @@ class RichTextPanel(wx.Panel):
         self.my_text.SetContextMenu(self.menu)
 
         self.SetSizerAndFit(sizer)
-
         self.Bind(wx.EVT_MENU, self.menu_event)
 
     def menu_event(self, event):
-        """ handle context menu events """
+        # handle context menu events
         event_id = event.GetId()
         self.tag(event_id)
 
@@ -98,11 +94,7 @@ class RichTextPanel(wx.Panel):
         elif event_id == ONLY_THIS_ID:
             exp = None
             position = None
-            for pos in self.parent.indices_range_to_exp_dict:
-                if pos[0] <= caret_position <= pos[1]:
-                    exp = self.parent.indices_range_to_exp_dict[pos]
-                    position = pos
-                    break
+            exp, position = self.get_exp_and_position(caret_position)
 
             if exp is not None and exp in self.parent.expressions_to_highlight:
                 self.parent.highlight_words("LIGHT GREY")
@@ -136,11 +128,7 @@ class RichTextPanel(wx.Panel):
         elif event_id == RESTORE_TO_DEFAULT_ID:
             exp = None
             position = None
-            for pos in self.parent.indices_range_to_exp_dict:
-                if pos[0] <= caret_position <= pos[1]:
-                    exp = self.parent.indices_range_to_exp_dict[pos]
-                    position = pos
-                    break
+            exp, position = self.get_exp_and_position(caret_position)
             default_group = self.parent.expressions_default_group_dict[exp]
             current_group = self.parent.expressions_group_dict[exp]
             if current_group == default_group:
@@ -149,6 +137,7 @@ class RichTextPanel(wx.Panel):
             else:
                 wx.MessageDialog(self.parent, f"Change group from {current_group} to {default_group}?", "Test",
                                  wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+                self.messageDialog(f"Change group from {current_group} to {default_group}?", cancel=True)
                 # update internal data
                 current_group_exp_list = self.parent.group_expressions_dict[current_group.lower()]
                 current_group_exp_list.remove(exp)
@@ -165,21 +154,39 @@ class RichTextPanel(wx.Panel):
                 # color groups in red
                 self.parent.mark_groups("RED")
 
+    # this method get the relevant expression and position according to the caret position
+    def get_exp_and_position(self, caret_position):
+        exp = None
+        position = None
+        for pos in self.parent.indices_range_to_exp_dict:
+            if pos[0] <= caret_position <= pos[1]:
+                exp = self.parent.indices_range_to_exp_dict[pos]
+                position = pos
+                break
+        return exp, position
+
+    # this method shows screen message dialog
+    def messageDialog(self, msg, cancel=False):
+        if cancel:
+            wx.MessageDialog(self.text_panel, msg, "Test",
+                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+        else:
+            wx.MessageDialog(self.text_panel, msg, "Test",
+                             wx.OK | wx.ICON_WARNING).ShowModal()
+
+    # this method is the functionality of "Tag Group" button
     def on_tag_new_group(self, e):
         combobox_value = self.combo.GetValue()
         current_group = self.expressions_group_dict[self.current_exp_selected]
         # group doesn't exists
         if combobox_value not in self.groups:
-            wx.MessageDialog(self.text_panel, "This is not a valid group!", "Test",
-                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+            self.messageDialog("This is not a valid group!", cancel=True)
         # group chosen is same as current
         elif current_group == combobox_value:
-            wx.MessageDialog(self.text_panel, "Same group was selected", "Test",
-                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+            self.messageDialog("Same group was selected", cancel=True)
         # ok
         else:
-            wx.MessageDialog(self.text_panel, f"Change group from {current_group} to {combobox_value}?", "Test",
-                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+            self.messageDialog(f"Change group from {current_group} to {combobox_value}?", cancel=True)
             # update internal data
             current_group_exp_list = self.group_expressions_dict[current_group]
             current_group_exp_list.remove(self.current_exp_selected)
@@ -254,23 +261,18 @@ class RichTextPanel(wx.Panel):
     #                 return word
     #     return None
 
+    # this method is the functionality of "Open" button
     def on_open(self, event):
         wildcard = "TXT files (*.txt)|*.txt|*.docx"
         dialog = wx.FileDialog(self, "Open Text Files", wildcard=wildcard,
                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
-
         if dialog.ShowModal() == wx.ID_CANCEL:
             return
-
         path = dialog.GetPath()
-
         if os.path.exists(path):
             with open(path) as fobj:
                 for line in fobj:
                     self.my_text.WriteText(line)
-
-
-
 
 
 class Highlighter(wx.Frame):
@@ -294,18 +296,14 @@ class Highlighter(wx.Frame):
         self.expressions_group_dict = dict()
         self.indices_range_to_exp_dict = dict()
         self.expressions_default_group_dict = dict()
-        # self.timer = wx.Timer(self, TIMER_ID)
         self.init_ui()
         self.MakeToolBar()
 
     def init_ui(self):
         menu_bar = wx.MenuBar()
         file_menu = wx.Menu()
-
         self.text_panel.my_text.Bind(wx.EVT_LEFT_DCLICK, self.on_double_click)
-
         # self.undo_redo_n = UNDOS_ALLOWED
-
         # new_menu_item = wx.MenuItem(file_menu, APP_NEW, '&New\tCtrl+N')
         open_menu_item = wx.MenuItem(file_menu, APP_OPEN, '&Open\tCtrl+O')
         save_menu_item = wx.MenuItem(file_menu, APP_SAVE, '&Save\tCtrl+S')
@@ -375,7 +373,6 @@ class Highlighter(wx.Frame):
             index += 1
         return word
 
-
     def on_open(self, event):
         wildcard = "TXT and DOC files (*.txt;*.docx;*.doc)|*.txt;*.docx;*.doc"
         dialog = wx.FileDialog(self, "Open Text Files", wildcard=wildcard,
@@ -400,23 +397,18 @@ class Highlighter(wx.Frame):
         self.mark_groups("RED")
 
     def on_save(self, evt):
-
         if not self.text_panel.my_text.GetFilename():
             self.on_save_as(evt)
             self.get_positions()
             return
-
         self.text_panel.my_text.SaveFile()
         self.get_positions()
 
     def on_save_as(self, evt):
-
         wildcard, types = rt.RichTextBuffer.GetExtWildcard(save=True)
-
         dlg = wx.FileDialog(self, "Choose a filename",
                             wildcard=wildcard,
                             style=wx.FC_SAVE)
-
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
             if path:
@@ -425,7 +417,6 @@ class Highlighter(wx.Frame):
                 if not path.endswith(ext):
                     path += '.' + ext
                 self.text_panel.my_text.SaveFile(path, file_type)
-
         dlg.Destroy()
 
     def forward_event(self, evt):
@@ -491,6 +482,8 @@ class Highlighter(wx.Frame):
     #         # num_of_newline = 1
     #         # print(f'pos_after: {pos} \n')
 
+    # this method get the positions of the expressions in the text, and updating the internal
+    # dictionaries
     def get_positions(self):
         #TODO THE FIRST CARET POSITION DOESNT WORKING ON DOUBLE_CLICK
         self.pos_list = []
@@ -541,6 +534,7 @@ class Highlighter(wx.Frame):
         for t in self.pos_list:
             self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
 
+    # this method superscripting the group names
     def mark_groups(self, color):
         attr_super = wx.richtext.RichTextAttr()
         attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
@@ -553,10 +547,8 @@ class Highlighter(wx.Frame):
     def on_undo(self, e):
         if 1 < self.undo_redo_n <= UNDOS_ALLOWED:
             self.undo_redo_n = self.undo_redo_n - 1
-
         if self.undo_redo_n == 1:
             self.toolbar.EnableTool(wx.ID_UNDO, False)
-
         if self.undo_redo_n == UNDOS_ALLOWED - 1:
             self.toolbar.EnableTool(wx.ID_REDO, True)
 
@@ -564,7 +556,6 @@ class Highlighter(wx.Frame):
         if UNDOS_ALLOWED > self.undo_redo_n >= 1:
             self.undo_redo_n = self.undo_redo_n + 1
             self.toolbar.EnableTool(wx.ID_UNDO, True)
-
         if self.undo_redo_n == UNDOS_ALLOWED:
             self.toolbar.EnableTool(wx.ID_REDO, False)
 
@@ -586,6 +577,7 @@ class Highlighter(wx.Frame):
             # not a valid expression
             return
 
+    # this method is the functionality of "Add Group" button
     def on_add_new(self, e):
         combobox_value = self.combo.GetValue()
         if combobox_value.lower() not in self.group_expressions_dict:
@@ -621,12 +613,10 @@ class Highlighter(wx.Frame):
             self.group_expressions_dict[combobox_value.lower()].append(self.current_exp_selected.lower())
             self.get_positions()
             self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())), rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
-
             self.highlight_words("YELLOW")
             self.mark_groups("RED")
 
     def MakeToolBar(self):
-
         def doBind(item, handler, updateUI=None):
             self.Bind(wx.EVT_TOOL, handler, item)
             if updateUI is not None:
@@ -648,18 +638,16 @@ class Highlighter(wx.Frame):
         tundo = tbar.AddTool(wx.ID_UNDO, 'Undo', undo_icon, shortHelp='Undo')
         tredo = tbar.AddTool(wx.ID_REDO, 'Redo', redo_icon, shortHelp='Redo')
         show_all = tbar.AddTool(ID_SHOW_ALL, 'Show All', show_all_icon, shortHelp='Restore')
+        finish = tbar.AddTool(-1, 'Finish', finish_icon, shortHelp='Finish session')
+        cancel = tbar.AddTool(-1, 'Cancel', cancel_icon, shortHelp='Cancel all changed made')
 
         # tbar.EnableTool(wx.ID_REDO, False)
 
         self.Bind(wx.EVT_TOOL, self.forward_event, tundo)
         self.Bind(wx.EVT_TOOL, self.forward_event, tredo)
 
-        finish = tbar.AddTool(-1, 'Finish', finish_icon, shortHelp='Finish session')
         doBind(finish, self.on_finish)
-
         doBind(show_all, self.on_show_all)
-
-        cancel = tbar.AddTool(-1, 'Cancel', cancel_icon, shortHelp='Cancel all changed made')
         doBind(cancel, self.on_quit)
 
         tbar.AddSeparator()
@@ -679,12 +667,9 @@ class Highlighter(wx.Frame):
         doBind(add, self.on_tag_new_group)
         tbar.Realize()
 
-
 def search_words_in_txt(text):
-
     word = 'machine'
     index = text.split().index(word)
-
     position = 0
     for i, word in enumerate(text):
         position += (1 + len(word))
@@ -746,9 +731,6 @@ def handle_files(self, path, file_extension):
     # if file_extension in docx_extentions:
     #
     # elif file_extension in doc_extentions:
-
-
-
 
 def get_expressions_from_json(self):
     with open("json.txt") as json_file:
