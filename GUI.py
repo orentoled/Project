@@ -222,20 +222,20 @@ class Highlighter(wx.Frame):
 
         # self.undo_redo_n = UNDOS_ALLOWED
 
-        new_menu_item = wx.MenuItem(file_menu, APP_NEW, '&New\tCtrl+N')
+        # new_menu_item = wx.MenuItem(file_menu, APP_NEW, '&New\tCtrl+N')
         open_menu_item = wx.MenuItem(file_menu, APP_OPEN, '&Open\tCtrl+O')
         save_menu_item = wx.MenuItem(file_menu, APP_SAVE, '&Save\tCtrl+S')
 
-        new_icon = wx.Bitmap('Icons\\new.png')
-        open_icon = wx.Bitmap('Icons\\open.png')
-        save_icon = wx.Bitmap('Icons\\save2.png')
-        exit_icon = wx.Bitmap('Icons\\exit.png')
+        # new_icon = wx.Bitmap('Icons\\new.png')
+        open_icon = wx.Bitmap('Icons\open.png')
+        save_icon = wx.Bitmap('Icons\save2.png')
+        exit_icon = wx.Bitmap('Icons\exit.png')
 
-        new_menu_item.SetBitmap(new_icon)
+        # new_menu_item.SetBitmap(new_icon)
         open_menu_item.SetBitmap(open_icon)
         save_menu_item.SetBitmap(save_icon)
 
-        file_menu.Append(new_menu_item)
+        # file_menu.Append(new_menu_item)
         file_menu.Append(open_menu_item)
         file_menu.Append(save_menu_item)
 
@@ -518,6 +518,8 @@ class Highlighter(wx.Frame):
         combobox_value = self.combo.GetValue()
         print(combobox_value)
         if combobox_value not in self.group_expressions_dict:
+            wx.MessageDialog(self.text_panel, f"Add new group name {combobox_value} to groups?", "Test",
+                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
             self.group_expressions_dict[combobox_value] = []
             self.groups.append(combobox_value)
             self.combo.Append(combobox_value)
@@ -538,8 +540,9 @@ class Highlighter(wx.Frame):
             self.expressions_group_dict[self.current_exp_selected] = combobox_value
             self.group_expressions_dict[current_group] = current_group_exp_list
             self.group_expressions_dict[combobox_value].append(self.current_exp_selected)
+            self.remove_highlight_words()
             self.get_positions()
-            # self.remove_highlight_words()
+            # self.text_panel.my_text.SetBackgroundColour("WHITE")
             self.highlight_words("YELLOW")
             self.mark_groups("RED")
         print(self.group_expressions_dict)
@@ -551,15 +554,15 @@ class Highlighter(wx.Frame):
             if updateUI is not None:
                 self.Bind(wx.EVT_UPDATE_UI, updateUI, item)
 
-        open_icon = wx.Bitmap('Icons\\open.png')
-        save_icon = wx.Bitmap('Icons\\save2.png')
-        show_all_icon = wx.Bitmap('Icons\\show.png')
+        open_icon = wx.Bitmap('Icons\open.png')
+        save_icon = wx.Bitmap('Icons\save2.png')
+        show_all_icon = wx.Bitmap('Icons\show.png')
         finish_icon = wx.Bitmap('Icons\\finish.png')
         redo_icon = wx.Bitmap('Icons\\redo.png')
         undo_icon = wx.Bitmap('Icons\\undo.png')
-        cancel_icon = wx.Bitmap('Icons\\cancel.png')
+        cancel_icon = wx.Bitmap('Icons\cancel.png')
         new_icon = wx.Bitmap('Icons\\new.png')
-        tag_icon = wx.Bitmap('Icons\\submit.png')
+        tag_icon = wx.Bitmap('Icons\submit.png')
 
         tbar = self.toolbar
         doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'), self.on_open)
