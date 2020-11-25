@@ -106,7 +106,7 @@ class RichTextPanel(wx.Panel):
             curr_exp = None
             position = None
             found = False
-            # find current position and next one is exists
+            # find current position and next one if exists
             for pos in self.parent.indices_range_to_exp_dict:
                 if found:
                     exp = self.parent.indices_range_to_exp_dict[pos]
@@ -127,18 +127,15 @@ class RichTextPanel(wx.Panel):
 
         elif event_id == PREV_INST_ID:
             # TODO focus on word
-            exp = None
             curr_exp = None
             position = None
-            found = False
             index = 0
-            # find current position and next one is exists
+            # find current position
             i = 0
             for pos in self.parent.indices_range_to_exp_dict:
                 if pos[0] <= caret_position <= pos[1]:
                     curr_exp = self.parent.indices_range_to_exp_dict[pos]
                     index = i
-                    found = True
                     break
                 i += 1
             if curr_exp is None:
@@ -162,6 +159,8 @@ class RichTextPanel(wx.Panel):
             exp = None
             position = None
             exp, position = self.get_exp_and_position(caret_position)
+            if exp is None and position is None:
+                return
             default_group = self.parent.expressions_default_group_dict[exp]
             current_group = self.parent.expressions_group_dict[exp]
             if current_group == default_group:
@@ -170,7 +169,6 @@ class RichTextPanel(wx.Panel):
             else:
                 wx.MessageDialog(self.parent, f"Change group from {current_group} to {default_group}?", "Test",
                                  wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
-                self.messageDialog(f"Change group from {current_group} to {default_group}?", cancel=True)
                 # update internal data
                 current_group_exp_list = self.parent.group_expressions_dict[current_group.lower()]
                 current_group_exp_list.remove(exp)
