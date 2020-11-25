@@ -116,13 +116,46 @@ class RichTextPanel(wx.Panel):
                 if pos[0] <= caret_position <= pos[1]:
                     curr_exp = self.parent.indices_range_to_exp_dict[pos]
                     found = True
-            if exp not in self.parent.expressions_to_highlight:
+            if curr_exp not in self.parent.expressions_to_highlight:
                 return
             if position is not None:
                 self.parent.highlight_words("LIGHT GREY")
                 self.apply_tag(position, exp, wx.YELLOW)
             else:
                 wx.MessageDialog(self.parent, "Last instance", "Test",
+                                 wx.OK | wx.ICON_WARNING).ShowModal()
+
+        elif event_id == PREV_INST_ID:
+            # TODO focus on word
+            exp = None
+            curr_exp = None
+            position = None
+            found = False
+            index = 0
+            # find current position and next one is exists
+            i = 0
+            for pos in self.parent.indices_range_to_exp_dict:
+                if pos[0] <= caret_position <= pos[1]:
+                    curr_exp = self.parent.indices_range_to_exp_dict[pos]
+                    index = i
+                    found = True
+                    break
+                i += 1
+            if curr_exp is None:
+                return
+            # go backwards
+            dict_list = list(self.parent.indices_range_to_exp_dict)
+            for i in range(index - 1, -1, -1):
+                pos = dict_list[i]
+                curr = self.parent.indices_range_to_exp_dict[pos]
+                if curr == curr_exp:
+                    position = pos
+                    break
+            if position is not None:
+                self.parent.highlight_words("LIGHT GREY")
+                self.apply_tag(position, curr_exp, wx.YELLOW)
+            else:
+                wx.MessageDialog(self.parent, "First instance", "Test",
                                  wx.OK | wx.ICON_WARNING).ShowModal()
 
         elif event_id == RESTORE_TO_DEFAULT_ID:
