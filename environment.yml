@@ -1,0 +1,13 @@
+name: TextHighlighter
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - wxpython
+  - pypandoc
+  - pip
+  - pip:
+    - jsonlib
+    - wxpython
+    - pypandoc
+
