@@ -340,9 +340,9 @@ class Highlighter(wx.Frame):
         save_menu_item = wx.MenuItem(file_menu, APP_SAVE, '&Save\tCtrl+S')
 
         # new_icon = wx.Bitmap('Icons\\new.png')
-        open_icon = wx.Bitmap('Icons\open.png')
-        save_icon = wx.Bitmap('Icons\save2.png')
-        exit_icon = wx.Bitmap('Icons\exit.png')
+        open_icon = wx.Bitmap('Icons/open.png')
+        save_icon = wx.Bitmap('Icons/save2.png')
+        exit_icon = wx.Bitmap('Icons/exit.png')
 
         # new_menu_item.SetBitmap(new_icon)
         open_menu_item.SetBitmap(open_icon)
@@ -520,7 +520,10 @@ class Highlighter(wx.Frame):
         self.pos_list = []
         self.groups_pos_list = []
         modified_text = ""
-        raw_text = self.opened_text
+        self.text_panel.my_text.Clear()
+        self.text_panel.my_text.WriteText(self.opened_text)
+        raw_text = self.text_panel.my_text.Value
+        #raw_text = self.opened_text
         i = 0
         while i < len(raw_text):
             for exp in self.expressions_to_highlight:
@@ -653,15 +656,15 @@ class Highlighter(wx.Frame):
             if updateUI is not None:
                 self.Bind(wx.EVT_UPDATE_UI, updateUI, item)
 
-        open_icon = wx.Bitmap('Icons\open.png')
-        save_icon = wx.Bitmap('Icons\save2.png')
-        show_all_icon = wx.Bitmap('Icons\show.png')
-        finish_icon = wx.Bitmap('Icons\\finish.png')
-        redo_icon = wx.Bitmap('Icons\\redo.png')
-        undo_icon = wx.Bitmap('Icons\\undo.png')
-        cancel_icon = wx.Bitmap('Icons\cancel.png')
-        new_icon = wx.Bitmap('Icons\\new.png')
-        tag_icon = wx.Bitmap('Icons\submit.png')
+        open_icon = wx.Bitmap('Icons/open.png')
+        save_icon = wx.Bitmap('Icons/save2.png')
+        show_all_icon = wx.Bitmap('Icons/show.png')
+        finish_icon = wx.Bitmap('Icons/finish.png')
+        redo_icon = wx.Bitmap('Icons/redo.png')
+        undo_icon = wx.Bitmap('Icons/undo.png')
+        cancel_icon = wx.Bitmap('Icons/cancel.png')
+        new_icon = wx.Bitmap('Icons/new.png')
+        tag_icon = wx.Bitmap('Icons/submit.png')
 
         tbar = self.toolbar
         doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'), self.on_open)
@@ -719,8 +722,10 @@ def convert_word_to_txt_and_open(self, path):
         # text = BeautifulSoup(output, features="lxml").get_text('\n')
         # self.text_panel.my_text.WriteText(text)
         self.text_panel.my_text.WriteText(output)
-        for line in output:
-            self.opened_text += line + "\n"
+        self.opened_text += output
+        # for line in output:
+        #     self.opened_text += line #+ "\n"
+
             # self.text_panel.my_text.WriteText(line)
         # content = textract.process(f'{path}', encoding='utf-8')
         # textFilename = path_without_type + ".txt"
@@ -752,6 +757,7 @@ def convert_word_to_txt_and_open(self, path):
             for line in fobj:
                 self.opened_text += line + "\n"
                 self.text_panel.my_text.WriteText(line)
+    # self.text_panel.my_text.WriteText(self.opened_text)
 
 def handle_files(self, path, file_extension):
     # print(f'{path}.{file_extension}')
