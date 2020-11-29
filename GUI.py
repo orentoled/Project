@@ -25,12 +25,17 @@ TAG_SENTENCE_ID = 5
 TAG_PARAGRAPH_ID = 6
 TAG_WORD_ID = 7
 ID_SHOW_ALL = 8
-RESTORE_TO_DEFAULT_ID = 9
-ONLY_THIS_ID = 10
-NEXT_INST_ID = 11
-PREV_INST_ID = 12
+ID_FINISH = 9
+ID_REDO = 10
+ID_UNDO = 11
+ID_ADD_NEW = 12
+ID_TAG_GROUP = 13
+RESTORE_TO_DEFAULT_ID = 14
+ONLY_THIS_ID = 15
+NEXT_INST_ID = 16
+PREV_INST_ID = 17
 
-UNDOS_ALLOWED = 10
+UNDOS_ALLOWED = 18
 
 
 class RichTextPanel(wx.Panel):
@@ -335,45 +340,75 @@ class Highlighter(wx.Frame):
     def init_ui(self):
         menu_bar = wx.MenuBar()
         file_menu = wx.Menu()
+        edit_menu = wx.Menu()
+        group_menu = wx.Menu()
         self.text_panel.my_text.Bind(wx.EVT_LEFT_DCLICK, self.on_double_click)
-        # self.undo_redo_n = UNDOS_ALLOWED
-        # new_menu_item = wx.MenuItem(file_menu, APP_NEW, '&New\tCtrl+N')
-        open_menu_item = wx.MenuItem(file_menu, APP_OPEN, '&Open\tCtrl+O')
-        save_menu_item = wx.MenuItem(file_menu, APP_SAVE, '&Save\tCtrl+S')
 
-        # new_icon = wx.Bitmap('Icons\\new.png')
         open_icon = wx.Bitmap('Icons/open.png')
         save_icon = wx.Bitmap('Icons/save2.png')
         exit_icon = wx.Bitmap('Icons/exit.png')
 
-        # new_menu_item.SetBitmap(new_icon)
-        open_menu_item.SetBitmap(open_icon)
-        save_menu_item.SetBitmap(save_icon)
+        show_all_icon = wx.Bitmap('Icons/show.png')
+        finish_icon = wx.Bitmap('Icons/finish.png')
+        redo_icon = wx.Bitmap('Icons/redo.png')
+        undo_icon = wx.Bitmap('Icons/undo.png')
 
-        # file_menu.Append(new_menu_item)
-        file_menu.Append(open_menu_item)
-        file_menu.Append(save_menu_item)
 
-        file_menu.AppendSeparator()
+        new_icon = wx.Bitmap('Icons/new.png')
+        tag_icon = wx.Bitmap('Icons/submit.png')
 
-        # imp_menu = wx.Menu()
-        # imp_menu.Append(wx.ID_ANY, 'Import newsfeed list...')
-        # imp_menu.Append(wx.ID_ANY, 'Import bookmarks...')
-        # imp_menu.Append(wx.ID_ANY, 'Import mail...')
-        #
-        # file_menu.Append(wx.ID_ANY, '&Import', imp_menu)
-
+        open_menu_item = wx.MenuItem(file_menu, APP_OPEN, '&Open\tCtrl+O')
+        save_menu_item = wx.MenuItem(file_menu, APP_SAVE, '&Save\tCtrl+S')
         quit_menu_item = wx.MenuItem(file_menu, APP_EXIT, '&Quit\tCtrl+Q')
 
+        show_all_menu_item = wx.MenuItem(edit_menu, APP_OPEN, '&Show All')
+        finish_menu_item = wx.MenuItem(edit_menu, APP_SAVE, '&Finish')
+        redo_menu_item = wx.MenuItem(edit_menu, APP_EXIT, '&Redo')
+        undo_menu_item = wx.MenuItem(edit_menu, APP_OPEN, '&Undo')
+
+        new_menu_item = wx.MenuItem(group_menu, APP_EXIT, '&Add New')
+        tag_menu_item = wx.MenuItem(group_menu, APP_OPEN, '&Tag')
+
+        open_menu_item.SetBitmap(open_icon)
+        save_menu_item.SetBitmap(save_icon)
         quit_menu_item.SetBitmap(exit_icon)
 
+        file_menu.Append(open_menu_item)
+        file_menu.Append(save_menu_item)
         file_menu.Append(quit_menu_item)
+
+        show_all_menu_item.SetBitmap(show_all_icon)
+        undo_menu_item.SetBitmap(undo_icon)
+        redo_menu_item.SetBitmap(redo_icon)
+        finish_menu_item.SetBitmap(finish_icon)
+
+        edit_menu.Append(show_all_menu_item)
+        edit_menu.Append(undo_menu_item)
+        edit_menu.Append(redo_menu_item)
+        edit_menu.Append(finish_menu_item)
+
+        new_menu_item.SetBitmap(new_icon)
+        tag_menu_item.SetBitmap(tag_icon)
+
+        group_menu.Append(new_menu_item)
+        group_menu.Append(tag_menu_item)
+
 
         self.Bind(wx.EVT_MENU, self.on_quit, id=APP_EXIT)
         self.Bind(wx.EVT_MENU, self.on_open, id=APP_OPEN)
         self.Bind(wx.EVT_MENU, self.on_save, id=APP_SAVE)
 
+        self.Bind(wx.EVT_MENU, self.on_show_all, id=ID_SHOW_ALL)
+        self.Bind(wx.EVT_MENU, self.on_redo, id=ID_REDO)
+        self.Bind(wx.EVT_MENU, self.on_undo, id=ID_UNDO)
+        self.Bind(wx.EVT_MENU, self.on_finish, id=ID_FINISH)
+        self.Bind(wx.EVT_MENU, self.on_add_new, id=ID_ADD_NEW)
+        self.Bind(wx.EVT_MENU, self.on_tag_new_group, id=ID_TAG_GROUP)
+
+
         menu_bar.Append(file_menu, '&File')
+        menu_bar.Append(edit_menu, '&Edit')
+        menu_bar.Append(group_menu, '&Group')
         self.SetMenuBar(menu_bar)
 
         self.SetSize((800, 700))
@@ -384,7 +419,8 @@ class Highlighter(wx.Frame):
         self.Close()
 
     def on_finish(self, e):
-        self.on_save(e)
+        # self.on_save(e)
+        print(json.dumps(self.group_expressions_dict))
         self.Close()
 
     def on_show_all(self, e):
