@@ -567,20 +567,17 @@ class Highlighter(wx.Frame):
                              wx.CANCEL | wx.ICON_WARNING).ShowModal()
         else:
             t = self.undo_actions.pop()
-            print(t)
-            print(self.expressions_group_dict)
             current_group = self.expressions_group_dict[t[0]]
             wx.MessageDialog(self.text_panel, f"Undo from {current_group} to {t[1]}?", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
             current_group_exp_list = self.group_expressions_dict[current_group.lower()]
             current_group_exp_list.remove(t[0].lower())
-            self.expressions_group_dict[t[0].lower()] = t[1].lower()
-            self.group_expressions_dict[current_group.lower()] = current_group_exp_list
-            self.group_expressions_dict[t[1].lower()].append(t[0].lower())
+            self.expressions_group_dict[t[0]] = t[1]
+            self.group_expressions_dict[current_group] = current_group_exp_list
+            self.group_expressions_dict[t[1].lower()].append(t[0])
             self.get_positions()
             self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())),
                                              rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
-            print(self.expressions_group_dict)
             self.highlight_words("YELLOW")
             self.mark_groups("RED")
             self.redo_actions.append((t[0], current_group))
@@ -592,20 +589,17 @@ class Highlighter(wx.Frame):
                              wx.CANCEL | wx.ICON_WARNING).ShowModal()
         else:
             t = self.redo_actions.pop()
-            print(t)
-            print(self.expressions_group_dict)
             current_group = self.expressions_group_dict[t[0]]
             wx.MessageDialog(self.text_panel, f"Redo from {current_group} to {t[1]}?", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
             current_group_exp_list = self.group_expressions_dict[current_group.lower()]
-            current_group_exp_list.remove(t[0].lower())
-            self.expressions_group_dict[t[0].lower()] = t[1].lower()
+            current_group_exp_list.remove(t[0])
+            self.expressions_group_dict[t[0]] = t[1]
             self.group_expressions_dict[current_group.lower()] = current_group_exp_list
-            self.group_expressions_dict[t[1].lower()].append(t[0].lower())
+            self.group_expressions_dict[t[1]].append(t[0])
             self.get_positions()
             self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())),
                                              rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
-            print(self.expressions_group_dict)
             self.highlight_words("YELLOW")
             self.mark_groups("RED")
             self.undo_actions.append((t[0], current_group))
@@ -660,7 +654,7 @@ class Highlighter(wx.Frame):
             current_group_exp_list = self.group_expressions_dict[current_group.lower()]
             current_group_exp_list.remove(self.current_exp_selected)
             self.expressions_group_dict[self.current_exp_selected.lower()] = combobox_value
-            t = (self.current_exp_selected.lower(), current_group.lower())
+            t = (self.current_exp_selected, current_group)
             self.undo_actions.append(t)
             self.group_expressions_dict[current_group.lower()] = current_group_exp_list
             self.group_expressions_dict[combobox_value.lower()].append(self.current_exp_selected.lower())
