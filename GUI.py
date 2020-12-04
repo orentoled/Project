@@ -568,7 +568,7 @@ class Highlighter(wx.Frame):
         else:
             t = self.undo_actions.pop()
             current_group = self.expressions_group_dict[t[0]]
-            wx.MessageDialog(self.text_panel, f"Undo from {current_group} to {t[1]}?", "Test",
+            wx.MessageDialog(self.text_panel, f"Undo Exp {t[0]} from {current_group} to {t[1]}?", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
             current_group_exp_list = self.group_expressions_dict[current_group.lower()]
             current_group_exp_list.remove(t[0].lower())
@@ -590,7 +590,7 @@ class Highlighter(wx.Frame):
         else:
             t = self.redo_actions.pop()
             current_group = self.expressions_group_dict[t[0]]
-            wx.MessageDialog(self.text_panel, f"Redo from {current_group} to {t[1]}?", "Test",
+            wx.MessageDialog(self.text_panel, f"Redo Exp {t[0]} from {current_group} to {t[1]}?", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
             current_group_exp_list = self.group_expressions_dict[current_group.lower()]
             current_group_exp_list.remove(t[0])
