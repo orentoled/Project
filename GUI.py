@@ -6,6 +6,7 @@ import os
 import json
 import wx
 import wx.richtext as rt
+import Secret as secret
 from docx import Document
 import io
 import textract
@@ -36,6 +37,7 @@ NEXT_INST_ID = 16
 PREV_INST_ID = 17
 
 UNDOS_ALLOWED = 18
+SECRET_COMB = 19
 
 
 class RichTextPanel(wx.Panel):
@@ -405,6 +407,9 @@ class Highlighter(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_add_new, id=ID_ADD_NEW)
         self.Bind(wx.EVT_MENU, self.on_tag_new_group, id=ID_TAG_GROUP)
 
+        self.Bind(wx.EVT_MENU, self.on_secret_comb, id=SECRET_COMB)
+        self.accel_tbl = wx.AcceleratorTable([(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('s'), SECRET_COMB)])
+        self.SetAcceleratorTable(self.accel_tbl)
 
         menu_bar.Append(file_menu, '&File')
         menu_bar.Append(edit_menu, '&Edit')
@@ -414,6 +419,10 @@ class Highlighter(wx.Frame):
         self.SetSize((800, 700))
         self.Centre()
         self.groups, self.words_to_highlight = get_expressions_from_json(self)
+
+    def on_secret_comb(self, e):
+        secret.StartGame()
+
 
     def on_quit(self, e):
         self.Close()
