@@ -581,39 +581,37 @@ class Highlighter(wx.Frame):
             self.text_panel.my_text.SetStyle(t, attr_super)
 
     def on_undo(self, e):
+        t = self.undo_actions.pop()
         if len(self.undo_actions) == 0:
-            wx.MessageDialog(self.text_panel, f"No previous action was done", "Test",
-                             wx.CANCEL | wx.ICON_WARNING).ShowModal()
-        else:
-            t = self.undo_actions.pop()
-            current_group = self.expressions_group_dict[t[0]]
-            wx.MessageDialog(self.text_panel, f"Undo '{t[0]}' from {current_group} to {t[1]}?", "Test",
-                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
-            current_group_exp_list = self.group_expressions_dict[current_group.lower()]
-            current_group_exp_list.remove(t[0].lower())
-            self.expressions_group_dict[t[0]] = t[1]
-            self.group_expressions_dict[current_group] = current_group_exp_list
-            self.group_expressions_dict[t[1].lower()].append(t[0])
-            self.get_positions(color="YELLOW", highlight=True, mark=True)
-            self.redo_actions.append((t[0], current_group))
+            self.toolbar.EnableTool(ID_UNDO, False)
+        current_group = self.expressions_group_dict[t[0]]
+        wx.MessageDialog(self.text_panel, f"Undo '{t[0]}' from {current_group} to {t[1]}?", "Test",
+                         wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+        current_group_exp_list = self.group_expressions_dict[current_group.lower()]
+        current_group_exp_list.remove(t[0].lower())
+        self.expressions_group_dict[t[0]] = t[1]
+        self.group_expressions_dict[current_group] = current_group_exp_list
+        self.group_expressions_dict[t[1].lower()].append(t[0])
+        self.get_positions(color="YELLOW", highlight=True, mark=True)
+        self.redo_actions.append((t[0], current_group))
+        self.toolbar.EnableTool(ID_REDO, True)
 
     def on_redo(self, e):
+        t = self.redo_actions.pop()
         if len(self.redo_actions) == 0:
-            wx.MessageDialog(self.text_panel, f"No previous action was done", "Test",
-                             wx.CANCEL | wx.ICON_WARNING).ShowModal()
-        else:
-            t = self.redo_actions.pop()
-            current_group = self.expressions_group_dict[t[0]]
-            wx.MessageDialog(self.text_panel, f"Redo '{t[0]}' from {current_group} to {t[1]}?", "Test",
-                             wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
-            current_group_exp_list = self.group_expressions_dict[current_group.lower()]
-            current_group_exp_list.remove(t[0])
-            self.expressions_group_dict[t[0]] = t[1]
-            self.group_expressions_dict[current_group.lower()] = current_group_exp_list
-            self.group_expressions_dict[t[1]].append(t[0])
-            # get new positions, highlight words and mark groups
-            self.get_positions("YELLOW", highlight=True, mark=True)
-            self.undo_actions.append((t[0], current_group))
+            self.toolbar.EnableTool(ID_REDO, False)
+        current_group = self.expressions_group_dict[t[0]]
+        wx.MessageDialog(self.text_panel, f"Redo '{t[0]}' from {current_group} to {t[1]}?", "Test",
+                         wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+        current_group_exp_list = self.group_expressions_dict[current_group.lower()]
+        current_group_exp_list.remove(t[0])
+        self.expressions_group_dict[t[0]] = t[1]
+        self.group_expressions_dict[current_group.lower()] = current_group_exp_list
+        self.group_expressions_dict[t[1]].append(t[0])
+        # get new positions, highlight words and mark groups
+        self.get_positions("YELLOW", highlight=True, mark=True)
+        self.undo_actions.append((t[0], current_group))
+        self.toolbar.EnableTool(ID_UNDO, True)
 
     def on_double_click(self, e):
         caret_pos = self.text_panel.my_text.GetCaretPosition()
@@ -667,6 +665,7 @@ class Highlighter(wx.Frame):
             self.expressions_group_dict[self.current_exp_selected.lower()] = combobox_value
             t = (self.current_exp_selected, current_group)
             self.undo_actions.append(t)
+            self.toolbar.EnableTool(ID_UNDO, True)
             self.group_expressions_dict[current_group.lower()] = current_group_exp_list
             self.group_expressions_dict[combobox_value.lower()].append(self.current_exp_selected.lower())
             # get new positions, highlight words and mark groups in red
@@ -691,8 +690,8 @@ class Highlighter(wx.Frame):
         tbar = self.toolbar
         doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'), self.on_open)
         tbar.AddTool(-1, 'Save', save_icon, shortHelp='Save File')
-        tundo = tbar.AddTool(wx.ID_UNDO, 'Undo', undo_icon, shortHelp='Undo')
-        tredo = tbar.AddTool(wx.ID_REDO, 'Redo', redo_icon, shortHelp='Redo')
+        tundo = tbar.AddTool(ID_UNDO, 'Undo', undo_icon, shortHelp='Undo')
+        tredo = tbar.AddTool(ID_REDO, 'Redo', redo_icon, shortHelp='Redo')
         show_all = tbar.AddTool(ID_SHOW_ALL, 'Show All', show_all_icon, shortHelp='Restore')
         finish = tbar.AddTool(-1, 'Finish', finish_icon, shortHelp='Finish session')
         cancel = tbar.AddTool(-1, 'Cancel', cancel_icon, shortHelp='Cancel all changed made')
@@ -707,6 +706,8 @@ class Highlighter(wx.Frame):
         doBind(cancel, self.on_quit)
         doBind(tundo, self.on_undo)
         doBind(tredo, self.on_redo)
+        self.toolbar.EnableTool(ID_REDO, False)
+        self.toolbar.EnableTool(ID_UNDO, False)
 
         tbar.AddSeparator()
         tbar.AddSeparator()
