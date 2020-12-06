@@ -502,25 +502,36 @@ class Highlighter(wx.Frame):
         if mark and highlight:
             self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())),
                                              rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
+        # i = 0
+        # so_far = 0
+        # to_find = self.wordlist_to_regex(self.expressions_to_highlight)
+        # while i < len(modified_text):
+        #     match_obj = to_find.search(modified_text.lower()[i:])
+        #     if match_obj is None:
+        #         return
+        #     i = so_far + match_obj.start()
+        #     exp = match_obj.group()
+        #     t = (i, i + len(exp))
+        #     self.pos_list.append(t)
+        #     if highlight:
+        #         self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
+        #     i += len(exp) + 1
+        #     group = self.expressions_group_dict[exp]
+        #     t2 = (i, i + len(group))
+        #     self.groups_pos_list.append(t2)
+        #     if mark:
+        #         attr_super = wx.richtext.RichTextAttr()
+        #         attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+        #         attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
+        #         attr_super.SetTextColour(wx.RED)
+        #         attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+        #         self.text_panel.my_text.SetStyle(t2, attr_super)
+        #
+        #     i += len(group) + 1
+        #     so_far = i
+        #     self.indices_range_to_exp_dict[t] = exp
 
-        # for exp in self.expressions_to_highlight:
-        #     indices = [m.start() for m in re.finditer(exp, modified_text.lower())]
-        #     for idx in indices:
-        #         t = (idx, idx + len(exp))
-        #         self.pos_list.append(t)
-        #         if highlight:
-        #             self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
-        #         group = self.expressions_group_dict[exp]
-        #         t2 = (idx, idx + len(group) + 1)
-        #         self.groups_pos_list.append(t2)
-        #         if mark:
-        #             attr_super = wx.richtext.RichTextAttr()
-        #             attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
-        #             attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
-        #             attr_super.SetTextColour(wx.RED)
-        #             attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
-        #             self.text_panel.my_text.SetStyle(t2, attr_super)
-        #         self.indices_range_to_exp_dict[t] = exp
+
         while i < len(modified_text):
             for exp in self.expressions_to_highlight:
                 s = modified_text.lower()[i: i + len(exp)]
@@ -545,9 +556,15 @@ class Highlighter(wx.Frame):
                     self.indices_range_to_exp_dict[t] = exp
                     break
             i += 1
+        print(self.groups_pos_list)
 
         # self.text_panel.my_text.Clear()
         # self.text_panel.my_text.WriteText(modified_text)
+
+    def wordlist_to_regex(self, words):
+        escaped = map(re.escape, words)
+        combined = '|'.join(sorted(escaped, key=len, reverse=True))
+        return re.compile(combined)
 
     # this method highlights expressions in input color
     def highlight_words(self, color):
