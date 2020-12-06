@@ -72,7 +72,6 @@ class RichTextPanel(wx.Panel):
         # get caret position
         caret_position = self.my_text.GetCaretPosition() + 1
         if event_id == TAG_WORD_ID:
-            # TODO fix that we can also mark two words
             word = self.find_word_to_tag(caret_position)
             if word is not None:
                 clean_word = " ".join(re.findall("[a-zA-Z]+", word))
@@ -472,6 +471,7 @@ class Highlighter(wx.Frame):
 
     def get_positions(self, color="", highlight=False, mark=False):
         #TODO THE FIRST CARET POSITION DOESNT WORKING ON DOUBLE_CLICK
+        start = time.time()
         self.pos_list = []
         self.groups_pos_list = []
         modified_text = ""
@@ -502,64 +502,63 @@ class Highlighter(wx.Frame):
         if mark and highlight:
             self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())),
                                              rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
-        # i = 0
-        # so_far = 0
-        # to_find = self.wordlist_to_regex(self.expressions_to_highlight)
-        # while i < len(modified_text):
-        #     match_obj = to_find.search(modified_text.lower()[i:])
-        #     if match_obj is None:
-        #         return
-        #     i = so_far + match_obj.start()
-        #     exp = match_obj.group()
-        #     t = (i, i + len(exp))
-        #     self.pos_list.append(t)
-        #     if highlight:
-        #         self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
-        #     i += len(exp) + 1
-        #     group = self.expressions_group_dict[exp]
-        #     t2 = (i, i + len(group))
-        #     self.groups_pos_list.append(t2)
-        #     if mark:
-        #         attr_super = wx.richtext.RichTextAttr()
-        #         attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
-        #         attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
-        #         attr_super.SetTextColour(wx.RED)
-        #         attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
-        #         self.text_panel.my_text.SetStyle(t2, attr_super)
-        #
-        #     i += len(group) + 1
-        #     so_far = i
-        #     self.indices_range_to_exp_dict[t] = exp
-
-
+        i = 0
+        so_far = 0
+        to_find = self.wordlist_to_regex(self.expressions_to_highlight)
         while i < len(modified_text):
-            for exp in self.expressions_to_highlight:
-                s = modified_text.lower()[i: i + len(exp)]
-                if s == exp:
-                    t = (i, i + len(exp))
-                    self.pos_list.append(t)
-                    if highlight:
-                        self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
-                    i += len(exp)
-                    group = self.expressions_group_dict[exp]
-                    t2 = (i, i + len(group) + 1)
-                    self.groups_pos_list.append(t2)
-                    if mark:
-                        attr_super = wx.richtext.RichTextAttr()
-                        attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
-                        attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
-                        attr_super.SetTextColour(wx.RED)
-                        attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
-                        self.text_panel.my_text.SetStyle(t2, attr_super)
+            match_obj = to_find.search(modified_text.lower()[i:])
+            if match_obj is None:
+                return
+            i = so_far + match_obj.start()
+            exp = match_obj.group()
+            t = (i, i + len(exp))
+            self.pos_list.append(t)
+            if highlight:
+                self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
+            i += len(exp) + 1
+            group = self.expressions_group_dict[exp]
+            t2 = (i, i + len(group))
+            self.groups_pos_list.append(t2)
+            if mark:
+                attr_super = wx.richtext.RichTextAttr()
+                attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+                attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
+                attr_super.SetTextColour(wx.RED)
+                attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+                self.text_panel.my_text.SetStyle(t2, attr_super)
 
-                    i += len(group)
-                    self.indices_range_to_exp_dict[t] = exp
-                    break
-            i += 1
-        print(self.groups_pos_list)
+            i += len(group) + 1
+            so_far = i
+            self.indices_range_to_exp_dict[t] = exp
 
-        # self.text_panel.my_text.Clear()
-        # self.text_panel.my_text.WriteText(modified_text)
+
+        # while i < len(modified_text):
+        #     for exp in self.expressions_to_highlight:
+        #         s = modified_text.lower()[i: i + len(exp)]
+        #         if s == exp:
+        #             t = (i, i + len(exp))
+        #             self.pos_list.append(t)
+        #             if highlight:
+        #                 self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
+        #             i += len(exp)
+        #             group = self.expressions_group_dict[exp]
+        #             t2 = (i, i + len(group) + 1)
+        #             self.groups_pos_list.append(t2)
+        #             if mark:
+        #                 attr_super = wx.richtext.RichTextAttr()
+        #                 attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+        #                 attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
+        #                 attr_super.SetTextColour(wx.RED)
+        #                 attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+        #                 self.text_panel.my_text.SetStyle(t2, attr_super)
+        #
+        #             i += len(group)
+        #             self.indices_range_to_exp_dict[t] = exp
+        #             break
+        #     i += 1
+
+        end = time.time()
+        # print(end - start)
 
     def wordlist_to_regex(self, words):
         escaped = map(re.escape, words)
@@ -588,7 +587,7 @@ class Highlighter(wx.Frame):
         else:
             t = self.undo_actions.pop()
             current_group = self.expressions_group_dict[t[0]]
-            wx.MessageDialog(self.text_panel, f"Undo Exp {t[0]} from {current_group} to {t[1]}?", "Test",
+            wx.MessageDialog(self.text_panel, f"Undo '{t[0]}' from {current_group} to {t[1]}?", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
             current_group_exp_list = self.group_expressions_dict[current_group.lower()]
             current_group_exp_list.remove(t[0].lower())
@@ -605,7 +604,7 @@ class Highlighter(wx.Frame):
         else:
             t = self.redo_actions.pop()
             current_group = self.expressions_group_dict[t[0]]
-            wx.MessageDialog(self.text_panel, f"Redo Exp {t[0]} from {current_group} to {t[1]}?", "Test",
+            wx.MessageDialog(self.text_panel, f"Redo '{t[0]}' from {current_group} to {t[1]}?", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
             current_group_exp_list = self.group_expressions_dict[current_group.lower()]
             current_group_exp_list.remove(t[0])
