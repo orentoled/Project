@@ -12,6 +12,7 @@ import io
 import textract
 import pypandoc
 from bs4 import BeautifulSoup
+import time
 
 # from docx.shared import Inches
 # from docx.enum.text import WD_COLOR_INDEX
@@ -70,25 +71,6 @@ class RichTextPanel(wx.Panel):
     def tag(self, event_id):
         # get caret position
         caret_position = self.my_text.GetCaretPosition() + 1
-        # tag by event
-        # if event_id == TAG_PARAGRAPH_ID:
-        #     paragraph = self.find_paragraph(caret_position)
-        #     start = self.my_text.GetValue().find(paragraph)
-        #     end = start + len(paragraph)
-        #     self.apply_tag((start, end))
-        # elif event_id == TAG_SENTENCE_ID:
-        #     sentence, x, y = self.find_sentence(caret_position)
-        #     start = self.my_text.GetValue().find(sentence.strip())
-        #     end = start + len(sentence.strip())
-        #     self.apply_tag((start, end))
-        # elif event_id == TAG_WORD_ID:
-        #     word = self.find_word(caret_position)
-        #     if word is not None:
-        #         clean_word = " ".join(re.findall("[a-zA-Z]+", word))
-        #         start = self.my_text.GetValue()[caret_position - 5:].find(word.strip()) + caret_position - 5
-        #         end = start + len(word.strip())
-        #         self.apply_tag((start, end), clean_word)
-
         if event_id == TAG_WORD_ID:
             # TODO fix that we can also mark two words
             word = self.find_word_to_tag(caret_position)
@@ -182,15 +164,8 @@ class RichTextPanel(wx.Panel):
                 self.parent.expressions_group_dict[exp] = default_group
                 self.parent.group_expressions_dict[current_group] = current_group_exp_list
                 self.parent.group_expressions_dict[default_group.lower()].append(exp)
-                # get new positions
-                self.parent.get_positions()
-                # color everything in white
-                self.my_text.SetStyle((0, len(self.my_text.GetValue())),
-                                                 rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
-                # highlight expressions
-                self.parent.highlight_words("YELLOW")
-                # color groups in red
-                self.parent.mark_groups("RED")
+                # get new positions, highlight words and mark groups in red
+                self.parent.get_positions(color="YELLOW", highlight=True, mark=True)
 
     # this method get the relevant expression and position according to the caret position
     def get_exp_and_position(self, caret_position):
@@ -231,14 +206,8 @@ class RichTextPanel(wx.Panel):
             self.expressions_group_dict[self.current_exp_selected] = combobox_value
             self.group_expressions_dict[current_group] = current_group_exp_list
             self.group_expressions_dict[combobox_value].append(self.current_exp_selected)
-            # get new positions
-            self.get_positions()
-            # color everything in white
-            self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())), rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
-            # highlight expressions
-            self.highlight_words("YELLOW")
-            # color groups in red
-            self.mark_groups("RED")
+            # get new positions, highlight words and mark groups in red
+            self.get_positions(self, "YELLOW", highlight=True, mark=True)
 
     # this method marks word by position with color of choice
     def apply_tag(self, position, word=None, color=wx.YELLOW):
@@ -423,7 +392,6 @@ class Highlighter(wx.Frame):
     def on_secret_comb(self, e):
         secret.StartGame()
 
-
     def on_quit(self, e):
         self.Close()
 
@@ -470,9 +438,7 @@ class Highlighter(wx.Frame):
         # self.text_panel.my_text.WriteText(self.opened_text + "\n" + "\n")
         # self.text_panel.my_text.WriteText(f"index is: {search_words_in_txt(self.opened_text)}")
 
-        self.get_positions()
-        self.highlight_words("YELLOW")
-        self.mark_groups("RED")
+        self.get_positions(color="YELLOW", highlight=True, mark=True)
 
     def on_save(self, evt):
         if not self.text_panel.my_text.GetFilename():
@@ -504,10 +470,7 @@ class Highlighter(wx.Frame):
         # forward the event to it.
         self.text_panel.my_text.ProcessEvent(evt)
 
-    # this method get the positions of the expressions in the text, and updating the internal
-    # dictionaries
-
-    def get_positions(self):
+    def get_positions(self, color="", highlight=False, mark=False):
         #TODO THE FIRST CARET POSITION DOESNT WORKING ON DOUBLE_CLICK
         self.pos_list = []
         self.groups_pos_list = []
@@ -515,17 +478,13 @@ class Highlighter(wx.Frame):
         self.text_panel.my_text.Clear()
         self.text_panel.my_text.WriteText(self.opened_text)
         raw_text = self.text_panel.my_text.Value
-        #raw_text = self.opened_text
-        i = 0
-        while i < len(raw_text):
-            for exp in self.expressions_to_highlight:
-                s = raw_text.lower()[i: i + len(exp)]
-                if s == exp:
-                    t = (i, i + len(exp))
-                    self.pos_list.append(t)
-                    i += len(exp) - 1
-                    break
-            i += 1
+        # get positions of expressions
+        for exp in self.expressions_to_highlight:
+            indices = [m.start() for m in re.finditer(exp, raw_text.lower())]
+            for idx in indices:
+                t = (idx, idx + len(exp))
+                self.pos_list.append(t)
+        self.pos_list.sort(key=lambda tup: tup[0])  # sorts in place
         list_of_pos_tuples = list(self.pos_list)
         j = 0
         for t in list_of_pos_tuples:
@@ -537,23 +496,58 @@ class Highlighter(wx.Frame):
         self.pos_list = []
         self.indices_range_to_exp_dict = {}
         i = 0
-        # print(modified_text)
+        self.text_panel.my_text.Clear()
+        self.text_panel.my_text.WriteText(modified_text)
+        # color everything in white
+        if mark and highlight:
+            self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())),
+                                             rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
+
+        # for exp in self.expressions_to_highlight:
+        #     indices = [m.start() for m in re.finditer(exp, modified_text.lower())]
+        #     for idx in indices:
+        #         t = (idx, idx + len(exp))
+        #         self.pos_list.append(t)
+        #         if highlight:
+        #             self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
+        #         group = self.expressions_group_dict[exp]
+        #         t2 = (idx, idx + len(group) + 1)
+        #         self.groups_pos_list.append(t2)
+        #         if mark:
+        #             attr_super = wx.richtext.RichTextAttr()
+        #             attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+        #             attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
+        #             attr_super.SetTextColour(wx.RED)
+        #             attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+        #             self.text_panel.my_text.SetStyle(t2, attr_super)
+        #         self.indices_range_to_exp_dict[t] = exp
         while i < len(modified_text):
             for exp in self.expressions_to_highlight:
                 s = modified_text.lower()[i: i + len(exp)]
                 if s == exp:
                     t = (i, i + len(exp))
                     self.pos_list.append(t)
+                    if highlight:
+                        self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
                     i += len(exp)
                     group = self.expressions_group_dict[exp]
                     t2 = (i, i + len(group) + 1)
                     self.groups_pos_list.append(t2)
+                    if mark:
+                        attr_super = wx.richtext.RichTextAttr()
+                        attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+                        attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
+                        attr_super.SetTextColour(wx.RED)
+                        attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+                        self.text_panel.my_text.SetStyle(t2, attr_super)
+
                     i += len(group)
                     self.indices_range_to_exp_dict[t] = exp
                     break
             i += 1
-        self.text_panel.my_text.Clear()
-        self.text_panel.my_text.WriteText(modified_text)
+
+        # self.text_panel.my_text.Clear()
+        # self.text_panel.my_text.WriteText(modified_text)
 
     # this method highlights expressions in input color
     def highlight_words(self, color):
@@ -584,13 +578,8 @@ class Highlighter(wx.Frame):
             self.expressions_group_dict[t[0]] = t[1]
             self.group_expressions_dict[current_group] = current_group_exp_list
             self.group_expressions_dict[t[1].lower()].append(t[0])
-            self.get_positions()
-            self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())),
-                                             rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
-            self.highlight_words("YELLOW")
-            self.mark_groups("RED")
+            self.get_positions(color="YELLOW", highlight=True, mark=True)
             self.redo_actions.append((t[0], current_group))
-
 
     def on_redo(self, e):
         if len(self.redo_actions) == 0:
@@ -606,11 +595,8 @@ class Highlighter(wx.Frame):
             self.expressions_group_dict[t[0]] = t[1]
             self.group_expressions_dict[current_group.lower()] = current_group_exp_list
             self.group_expressions_dict[t[1]].append(t[0])
-            self.get_positions()
-            self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())),
-                                             rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
-            self.highlight_words("YELLOW")
-            self.mark_groups("RED")
+            # get new positions, highlight words and mark groups
+            self.get_positions("YELLOW", highlight=True, mark=True)
             self.undo_actions.append((t[0], current_group))
 
     def on_double_click(self, e):
@@ -667,10 +653,8 @@ class Highlighter(wx.Frame):
             self.undo_actions.append(t)
             self.group_expressions_dict[current_group.lower()] = current_group_exp_list
             self.group_expressions_dict[combobox_value.lower()].append(self.current_exp_selected.lower())
-            self.get_positions()
-            self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())), rt.RichTextAttr(wx.TextAttr("BLACK", "WHITE")))
-            self.highlight_words("YELLOW")
-            self.mark_groups("RED")
+            # get new positions, highlight words and mark groups in red
+            self.get_positions(color="YELLOW", highlight=True, mark=True)
 
     def MakeToolBar(self):
         def doBind(item, handler, updateUI=None):
