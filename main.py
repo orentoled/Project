@@ -8,7 +8,7 @@ from docx.shared import Inches
 from docx.enum.text import WD_COLOR_INDEX
 from termcolor import colored
 
-
+GUI.start_app('C:/Users/User/PycharmProjects/ProjectNLP/demo.txt')
 
 
 """

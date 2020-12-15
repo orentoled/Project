@@ -326,8 +326,10 @@ class Highlighter(wx.Frame):
         self.indices_range_to_exp_dict = dict()
         self.expressions_default_group_dict = dict()
         self.scale = 1.05
+        self.path = kwargs['name']
         self.init_ui()
         self.MakeToolBar()
+        self.open_file()
 
     def init_ui(self):
         menu_bar = wx.MenuBar()
@@ -442,6 +444,13 @@ class Highlighter(wx.Frame):
             index += 1
         return word
 
+    def open_file(self):
+        path = self.path
+        self.groups, self.words_to_highlight = get_expressions_from_json(self)
+        if os.path.exists(path):
+            convert_word_to_txt_and_open(self, path)
+        self.get_positions(color="YELLOW", highlight=True, mark=True)
+
     def on_open(self, event):
         wildcard = "TXT and DOC files (*.txt;*.docx;*.doc)|*.txt;*.docx;*.doc"
         dialog = wx.FileDialog(self, "Open Text Files", wildcard=wildcard,
@@ -450,6 +459,8 @@ class Highlighter(wx.Frame):
         if dialog.ShowModal() == wx.ID_CANCEL:
             return
         path = dialog.GetPath()
+        if self.path is not None:
+            path = self.path
         self.groups, self.words_to_highlight = get_expressions_from_json(self)
         if os.path.exists(path):
             convert_word_to_txt_and_open(self, path)
@@ -915,14 +926,14 @@ def get_expressions_from_json(self):
             self.expressions_default_group_dict = self.expressions_group_dict.copy()
         return groups, words
 
-def start_app():
+
+def start_app(path, json_object=None):
     # get_expressions_from_json()
     highlighter = wx.App()
-    frame = Highlighter(None, title='Text Highlighter')
+    frame = Highlighter(None, title='Text Highlighter', name=path)
     frame.Show()
     highlighter.MainLoop()
 
-start_app()
 
 
 
