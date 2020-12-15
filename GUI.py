@@ -155,8 +155,10 @@ class RichTextPanel(wx.Panel):
                 wx.MessageDialog(self.parent, "Current group is the default group", "Test",
                              wx.OK | wx.ICON_WARNING).ShowModal()
             else:
-                wx.MessageDialog(self.parent, f"Change group from {current_group} to {default_group}?", "Test",
+                modal = wx.MessageDialog(self.parent, f"Change group from {current_group} to {default_group}?", "Test",
                                  wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+                if modal == wx.ID_CANCEL:
+                    return
                 # update internal data
                 current_group_exp_list = self.parent.group_expressions_dict[current_group.lower()]
                 current_group_exp_list.remove(exp)
@@ -170,11 +172,30 @@ class RichTextPanel(wx.Panel):
     def get_exp_and_position(self, caret_position):
         exp = None
         position = None
-        for pos in self.parent.indices_range_to_exp_dict:
-            if pos[0] <= caret_position <= pos[1]:
-                exp = self.parent.indices_range_to_exp_dict[pos]
-                position = pos
+        low = 0
+        high = len(self.parent.indices_range_to_exp_dict) - 1
+        indices_range_to_exp_list = list(self.parent.indices_range_to_exp_dict)
+        # binary search on pos
+        while low <= high:
+            mid = (low + high) // 2
+            start_pos = indices_range_to_exp_list[mid][0]
+            end_pos = indices_range_to_exp_list[mid][1]
+            position = (start_pos, end_pos)
+            if start_pos <= caret_position <= end_pos:
+                exp = self.parent.indices_range_to_exp_dict[position]
                 break
+            elif start_pos > caret_position:
+                high = mid - 1
+            else:
+                low = mid + 1
+
+        # exp = None
+        # position = None
+        # for pos in self.parent.indices_range_to_exp_dict:
+        #     if pos[0] <= caret_position <= pos[1]:
+        #         exp = self.parent.indices_range_to_exp_dict[pos]
+        #         position = pos
+        #         break
         return exp, position
 
     # this method shows screen message dialog
@@ -186,27 +207,27 @@ class RichTextPanel(wx.Panel):
             wx.MessageDialog(self.text_panel, msg, "Test",
                              wx.OK | wx.ICON_WARNING).ShowModal()
 
-    # this method is the functionality of "Tag Group" button
-    def on_tag_new_group(self, e):
-        combobox_value = self.combo.GetValue()
-        current_group = self.expressions_group_dict[self.current_exp_selected]
-        # group doesn't exists
-        if combobox_value not in self.groups:
-            self.messageDialog("This is not a valid group!", cancel=True)
-        # group chosen is same as current
-        elif current_group == combobox_value:
-            self.messageDialog("Same group was selected", cancel=True)
-        # ok
-        else:
-            self.messageDialog(f"Change group from {current_group} to {combobox_value}?", cancel=True)
-            # update internal data
-            current_group_exp_list = self.group_expressions_dict[current_group]
-            current_group_exp_list.remove(self.current_exp_selected)
-            self.expressions_group_dict[self.current_exp_selected] = combobox_value
-            self.group_expressions_dict[current_group] = current_group_exp_list
-            self.group_expressions_dict[combobox_value].append(self.current_exp_selected)
-            # get new positions, highlight words and mark groups in red
-            self.get_positions(self, "YELLOW", highlight=True, mark=True)
+    # # this method is the functionality of "Tag Group" button
+    # def on_tag_new_group(self, e):
+    #     combobox_value = self.combo.GetValue()
+    #     current_group = self.expressions_group_dict[self.current_exp_selected]
+    #     # group doesn't exists
+    #     if combobox_value not in self.groups:
+    #         self.messageDialog("This is not a valid group!", cancel=True)
+    #     # group chosen is same as current
+    #     elif current_group == combobox_value:
+    #         self.messageDialog("Same group was selected", cancel=True)
+    #     # ok
+    #     else:
+    #         self.messageDialog(f"Change group from {current_group} to {combobox_value}?", cancel=True)
+    #         # update internal data
+    #         current_group_exp_list = self.group_expressions_dict[current_group]
+    #         current_group_exp_list.remove(self.current_exp_selected)
+    #         self.expressions_group_dict[self.current_exp_selected] = combobox_value
+    #         self.group_expressions_dict[current_group] = current_group_exp_list
+    #         self.group_expressions_dict[combobox_value].append(self.current_exp_selected)
+    #         # get new positions, highlight words and mark groups in red
+    #         self.get_positions(self, "YELLOW", highlight=True, mark=True)
 
     # this method marks word by position with color of choice
     def apply_tag(self, position, word=None, color=wx.YELLOW):
@@ -304,6 +325,7 @@ class Highlighter(wx.Frame):
         self.expressions_group_dict = dict()
         self.indices_range_to_exp_dict = dict()
         self.expressions_default_group_dict = dict()
+        self.scale = 1.0
         self.init_ui()
         self.MakeToolBar()
 
@@ -373,7 +395,7 @@ class Highlighter(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_undo, id=ID_UNDO)
         self.Bind(wx.EVT_MENU, self.on_finish, id=ID_FINISH)
         self.Bind(wx.EVT_MENU, self.on_add_new, id=ID_ADD_NEW)
-        self.Bind(wx.EVT_MENU, self.on_tag_new_group, id=ID_TAG_GROUP)
+        # self.Bind(wx.EVT_MENU, self.on_tag_new_group, id=ID_TAG_GROUP)
 
         self.Bind(wx.EVT_MENU, self.on_secret_comb, id=SECRET_COMB)
         self.accel_tbl = wx.AcceleratorTable([(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('s'), SECRET_COMB)])
@@ -384,7 +406,7 @@ class Highlighter(wx.Frame):
         menu_bar.Append(group_menu, '&Group')
         self.SetMenuBar(menu_bar)
 
-        self.SetSize((800, 700))
+        self.SetSize((800, 600))
         self.Centre()
         self.groups, self.words_to_highlight = get_expressions_from_json(self)
 
@@ -425,7 +447,6 @@ class Highlighter(wx.Frame):
 
         if dialog.ShowModal() == wx.ID_CANCEL:
             return
-
         path = dialog.GetPath()
         self.groups, self.words_to_highlight = get_expressions_from_json(self)
         if os.path.exists(path):
@@ -585,8 +606,10 @@ class Highlighter(wx.Frame):
         if len(self.undo_actions) == 0:
             self.toolbar.EnableTool(ID_UNDO, False)
         current_group = self.expressions_group_dict[t[0]]
-        wx.MessageDialog(self.text_panel, f"Undo '{t[0]}' from {current_group} to {t[1]}?", "Test",
+        modal = wx.MessageDialog(self.text_panel, f"Undo '{t[0]}' from {current_group} to {t[1]}?", "Test",
                          wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+        if modal == wx.ID_CANCEL:
+            return
         current_group_exp_list = self.group_expressions_dict[current_group.lower()]
         current_group_exp_list.remove(t[0].lower())
         self.expressions_group_dict[t[0]] = t[1]
@@ -601,8 +624,10 @@ class Highlighter(wx.Frame):
         if len(self.redo_actions) == 0:
             self.toolbar.EnableTool(ID_REDO, False)
         current_group = self.expressions_group_dict[t[0]]
-        wx.MessageDialog(self.text_panel, f"Redo '{t[0]}' from {current_group} to {t[1]}?", "Test",
+        modal = wx.MessageDialog(self.text_panel, f"Redo '{t[0]}' from {current_group} to {t[1]}?", "Test",
                          wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+        if modal == wx.ID_CANCEL:
+            return
         current_group_exp_list = self.group_expressions_dict[current_group.lower()]
         current_group_exp_list.remove(t[0])
         self.expressions_group_dict[t[0]] = t[1]
@@ -613,15 +638,41 @@ class Highlighter(wx.Frame):
         self.undo_actions.append((t[0], current_group))
         self.toolbar.EnableTool(ID_UNDO, True)
 
+    def on_zoom_in(self, e):
+        self.scale += 0.1
+        self.text_panel.my_text.SetScale(self.scale, refresh=True)
+
+    def on_zoom_out(self, e):
+        self.scale -= 0.1
+        self.text_panel.my_text.SetScale(self.scale, refresh=True)
+
     def on_double_click(self, e):
         caret_pos = self.text_panel.my_text.GetCaretPosition()
         exp = None
-        # find expression by caret position
-        for position in self.indices_range_to_exp_dict:
-            if position[0] <= caret_pos <= position[1]:
+        low = 0
+        high = len(self.indices_range_to_exp_dict) - 1
+        indices_range_to_exp_list = list(self.indices_range_to_exp_dict)
+        # binary search on pos
+        while low <= high:
+            mid = (low + high) // 2
+            start_pos = indices_range_to_exp_list[mid][0]
+            end_pos = indices_range_to_exp_list[mid][1]
+            position = (start_pos, end_pos)
+            if start_pos <= caret_pos <= end_pos:
                 exp = self.indices_range_to_exp_dict[position]
                 self.current_exp_selected = exp
                 break
+            elif start_pos > caret_pos:
+                high = mid - 1
+            else:
+                low = mid + 1
+
+        # for position in self.indices_range_to_exp_dict:
+        #     if position[0] <= caret_pos <= position[1]:
+        #         exp = self.indices_range_to_exp_dict[position]
+        #         self.current_exp_selected = exp
+        #         break
+
         if exp in self.expressions_group_dict:
             # valid expression
             belong_to_group = self.expressions_group_dict[exp]
@@ -636,8 +687,10 @@ class Highlighter(wx.Frame):
         combobox_value = self.combo.GetValue()
         if combobox_value.lower() not in self.group_expressions_dict:
             # adding group
-            wx.MessageDialog(self.text_panel, f"Add new group name {combobox_value}?", "Test",
+            modal = wx.MessageDialog(self.text_panel, f"Add new group name {combobox_value}?", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+            if modal == wx.ID_CANCEL:
+                return
             # updating internal data
             self.group_expressions_dict[combobox_value.lower()] = []
             self.groups.append(combobox_value)
@@ -647,8 +700,10 @@ class Highlighter(wx.Frame):
             wx.MessageDialog(self.text_panel, "Group already exists", "Test",
                              wx.OK | wx.ICON_WARNING).ShowModal()
 
-    def on_tag_new_group(self, e):
+    def on_combo_select(self, e):
         combobox_value = self.combo.GetValue()
+        if self.current_exp_selected is None:
+            return
         current_group = self.expressions_group_dict[self.current_exp_selected]
         if combobox_value not in self.groups:
             wx.MessageDialog(self.text_panel, "This is not a valid group!", "Test",
@@ -658,8 +713,10 @@ class Highlighter(wx.Frame):
                              wx.CANCEL | wx.ICON_WARNING).ShowModal()
         else:
             current_group = self.expressions_group_dict[self.current_exp_selected]
-            wx.MessageDialog(self.text_panel, f"Change group from {current_group} to {combobox_value}?", "Test",
+            modal = wx.MessageDialog(self.text_panel, f"Change group from {current_group} to {combobox_value}?", "Test",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+            if modal == wx.ID_CANCEL:
+                return
             current_group_exp_list = self.group_expressions_dict[current_group.lower()]
             current_group_exp_list.remove(self.current_exp_selected)
             self.expressions_group_dict[self.current_exp_selected.lower()] = combobox_value
@@ -671,6 +728,30 @@ class Highlighter(wx.Frame):
             # get new positions, highlight words and mark groups in red
             self.get_positions(color="YELLOW", highlight=True, mark=True)
 
+    # def on_tag_new_group(self, e):
+    #     combobox_value = self.combo.GetValue()
+    #     current_group = self.expressions_group_dict[self.current_exp_selected]
+    #     if combobox_value not in self.groups:
+    #         wx.MessageDialog(self.text_panel, "This is not a valid group!", "Test",
+    #                          wx.CANCEL | wx.ICON_WARNING).ShowModal()
+    #     elif current_group == combobox_value:
+    #         wx.MessageDialog(self.text_panel, "Same group was selected", "Test",
+    #                          wx.CANCEL | wx.ICON_WARNING).ShowModal()
+    #     else:
+    #         current_group = self.expressions_group_dict[self.current_exp_selected]
+    #         wx.MessageDialog(self.text_panel, f"Change group from {current_group} to {combobox_value}?", "Test",
+    #                          wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+    #         current_group_exp_list = self.group_expressions_dict[current_group.lower()]
+    #         current_group_exp_list.remove(self.current_exp_selected)
+    #         self.expressions_group_dict[self.current_exp_selected.lower()] = combobox_value
+    #         t = (self.current_exp_selected, current_group)
+    #         self.undo_actions.append(t)
+    #         self.toolbar.EnableTool(ID_UNDO, True)
+    #         self.group_expressions_dict[current_group.lower()] = current_group_exp_list
+    #         self.group_expressions_dict[combobox_value.lower()].append(self.current_exp_selected.lower())
+    #         # get new positions, highlight words and mark groups in red
+    #         self.get_positions(color="YELLOW", highlight=True, mark=True)
+
     def MakeToolBar(self):
         def doBind(item, handler, updateUI=None):
             self.Bind(wx.EVT_TOOL, handler, item)
@@ -678,23 +759,27 @@ class Highlighter(wx.Frame):
                 self.Bind(wx.EVT_UPDATE_UI, updateUI, item)
 
         open_icon = wx.Bitmap('Icons/open.png')
-        save_icon = wx.Bitmap('Icons/save2.png')
+        # save_icon = wx.Bitmap('Icons/save2.png')
         show_all_icon = wx.Bitmap('Icons/show.png')
         finish_icon = wx.Bitmap('Icons/finish.png')
         redo_icon = wx.Bitmap('Icons/redo.png')
         undo_icon = wx.Bitmap('Icons/undo.png')
-        cancel_icon = wx.Bitmap('Icons/cancel.png')
+        # cancel_icon = wx.Bitmap('Icons/cancel.png')
         new_icon = wx.Bitmap('Icons/new.png')
-        tag_icon = wx.Bitmap('Icons/submit.png')
+        # tag_icon = wx.Bitmap('Icons/submit.png')
+        zoom_in_icon = wx.Bitmap('Icons/zoom-in.png')
+        zoom_out_icon = wx.Bitmap('Icons/zoom-out.png')
 
         tbar = self.toolbar
         doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'), self.on_open)
-        tbar.AddTool(-1, 'Save', save_icon, shortHelp='Save File')
+        # tbar.AddTool(-1, 'Save', save_icon, shortHelp='Save File')
         tundo = tbar.AddTool(ID_UNDO, 'Undo', undo_icon, shortHelp='Undo')
         tredo = tbar.AddTool(ID_REDO, 'Redo', redo_icon, shortHelp='Redo')
         show_all = tbar.AddTool(ID_SHOW_ALL, 'Show All', show_all_icon, shortHelp='Restore')
         finish = tbar.AddTool(-1, 'Finish', finish_icon, shortHelp='Finish session')
-        cancel = tbar.AddTool(-1, 'Cancel', cancel_icon, shortHelp='Cancel all changed made')
+        zoom_in = tbar.AddTool(-1, 'Zoom In', zoom_in_icon, shortHelp='Zoom in')
+        zoom_out = tbar.AddTool(-1, 'Zoom Out', zoom_out_icon, shortHelp='Zoom out')
+        # cancel = tbar.AddTool(-1, 'Cancel', cancel_icon, shortHelp='Cancel all changed made')
 
         # tbar.EnableTool(wx.ID_REDO, False)
 
@@ -703,9 +788,14 @@ class Highlighter(wx.Frame):
 
         doBind(finish, self.on_finish)
         doBind(show_all, self.on_show_all)
-        doBind(cancel, self.on_quit)
+
+
+
+        # doBind(cancel, self.on_quit)
         doBind(tundo, self.on_undo)
         doBind(tredo, self.on_redo)
+        doBind(zoom_in, self.on_zoom_in)
+        doBind(zoom_out, self.on_zoom_out)
         self.toolbar.EnableTool(ID_REDO, False)
         self.toolbar.EnableTool(ID_UNDO, False)
 
@@ -714,16 +804,16 @@ class Highlighter(wx.Frame):
         tbar.AddSeparator()
         tbar.AddSeparator()
 
-        # tbar.Bind(wx.EVT_COMBOBOX, self.on_combo_select)
         self.combo = wx.ComboBox(tbar, 555, value="", choices=self.groups, style=wx.TE_PROCESS_ENTER)
+        self.combo.Bind(wx.EVT_COMBOBOX, self.on_combo_select)
         self.combo.Bind(wx.EVT_TEXT_ENTER, self.on_add_new)
         tbar.AddControl(self.combo)
 
         tbar.AddSeparator()
         add = tbar.AddTool(-1, 'Add Group', new_icon, shortHelp='Add New Group')
         doBind(add, self.on_add_new)
-        add = tbar.AddTool(-1, 'Tag Group', tag_icon, shortHelp='Change Group')
-        doBind(add, self.on_tag_new_group)
+        # add = tbar.AddTool(-1, 'Tag Group', tag_icon, shortHelp='Change Group')
+        # doBind(add, self.on_tag_new_group)
         tbar.Realize()
 
 def search_words_in_txt(text):
@@ -783,6 +873,7 @@ def convert_word_to_txt_and_open(self, path):
                 self.opened_text += line + "\n"
                 self.text_panel.my_text.WriteText(line)
     # self.text_panel.my_text.WriteText(self.opened_text)
+
 
 def handle_files(self, path, file_extension):
     # print(f'{path}.{file_extension}')
