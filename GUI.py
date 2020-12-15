@@ -325,7 +325,7 @@ class Highlighter(wx.Frame):
         self.expressions_group_dict = dict()
         self.indices_range_to_exp_dict = dict()
         self.expressions_default_group_dict = dict()
-        self.scale = 1.0
+        self.scale = 1.05
         self.init_ui()
         self.MakeToolBar()
 
@@ -334,6 +334,8 @@ class Highlighter(wx.Frame):
         file_menu = wx.Menu()
         edit_menu = wx.Menu()
         group_menu = wx.Menu()
+        # making the font default size to 1.05
+        self.text_panel.my_text.SetScale(self.scale)
         self.text_panel.my_text.Bind(wx.EVT_LEFT_DCLICK, self.on_double_click)
 
         open_icon = wx.Bitmap('Icons/open.png')
