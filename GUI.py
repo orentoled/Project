@@ -308,6 +308,8 @@ class Highlighter(wx.Frame):
         self.SetTitle(kwargs['title'])
         self.text_panel = RichTextPanel(self)
         self.combo = None
+        self.last_pos = None
+        self.last_scroll_pos = None
         self.textbox = None
         self.toolbar = self.CreateToolBar(style=wx.TB_TEXT)
         self.groups = None
@@ -659,8 +661,26 @@ class Highlighter(wx.Frame):
         self.scale -= 0.1
         self.text_panel.my_text.SetScale(self.scale, refresh=True)
 
+    def number_of_rows_to_pos(self, pos):
+        my_text = self.text_panel.my_text.Value[:pos]
+        num_lines = len(my_text.splitlines())
+        return num_lines
+
+    def event_scroll_to_pos(self, caret_pos, scroll_pos):
+        num_rows = self.number_of_rows_to_pos(caret_pos)
+        self.text_panel.my_text.SetScrollPos(
+            wx.VERTICAL,
+            scroll_pos)
+        # self.text_panel.my_text.SetCaretPosition(pos)
+        # self.text_panel.my_text.SetInsertionPoint(pos)
+        # self.text_panel.my_text.ShowPosition(pos)
+        self.text_panel.my_text.ScrollLines(num_rows)
+        # self.text_panel.my_text.
+
     def on_double_click(self, e):
         caret_pos = self.text_panel.my_text.GetCaretPosition()
+        self.last_scroll_pos = self.text_panel.my_text.GetScrollPos(wx.VERTICAL)
+        self.last_pos = caret_pos
         exp = None
         low = 0
         high = len(self.indices_range_to_exp_dict) - 1
@@ -740,7 +760,7 @@ class Highlighter(wx.Frame):
             self.group_expressions_dict[combobox_value.lower()].append(self.current_exp_selected.lower())
             # get new positions, highlight words and mark groups in red
             self.get_positions(color="YELLOW", highlight=True, mark=True)
-
+            self.event_scroll_to_pos(self.last_pos, self.last_scroll_pos)
     # def on_tag_new_group(self, e):
     #     combobox_value = self.combo.GetValue()
     #     current_group = self.expressions_group_dict[self.current_exp_selected]
@@ -934,8 +954,10 @@ def start_app(path, json_object=None):
     frame.Show()
     highlighter.MainLoop()
 
-
-
+path = "C:/Users/shira/OneDrive/Desktop/Technion/semester7/IndustrialProject/Highlighter/Project/-25647833-V1-דרישות לסטודנטים המפורשות.docx"
+# json_str = '{"machine group": ["coffee machine", "product", "machine"],"button group": ["Power button", "Control Knob"]}'
+# json = json.loads(json_str)
+start_app(path, json)
 
 """
 Json Functions
