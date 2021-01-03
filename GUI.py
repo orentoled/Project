@@ -1,4 +1,3 @@
-
 #This file implements the GUI of the HighLighter#
 
 import re
@@ -80,13 +79,12 @@ class RichTextPanel(wx.Panel):
                 self.apply_tag((start, end), clean_word, wx.BLUE)
 
         elif event_id == ONLY_THIS_ID:
-            exp = None
-            position = None
             exp, position = self.get_exp_and_position(caret_position)
 
             if exp is not None and exp in self.parent.expressions_to_highlight:
                 self.parent.highlight_words("LIGHT GREY")
                 self.apply_tag(position, exp, wx.YELLOW)
+
 
         elif event_id == NEXT_INST_ID:
             # TODO focus on word
@@ -109,6 +107,9 @@ class RichTextPanel(wx.Panel):
             if position is not None:
                 self.parent.highlight_words("LIGHT GREY")
                 self.apply_tag(position, exp, wx.YELLOW)
+                # self.parent.SetScrollbar(orientation=wx.VERTICAL, position=position[0],
+                #                          thumbSize=self.parent.GetScrollThumb(wx.VERTICAL),
+                #                          range=-1, refresh=True)
             else:
                 wx.MessageDialog(self.parent, "Last instance", "Test",
                                  wx.OK | wx.ICON_WARNING).ShowModal()
@@ -144,9 +145,8 @@ class RichTextPanel(wx.Panel):
                                  wx.OK | wx.ICON_WARNING).ShowModal()
 
         elif event_id == RESTORE_TO_DEFAULT_ID:
-            exp = None
-            position = None
             exp, position = self.get_exp_and_position(caret_position)
+            self.parent.last_scroll_pos = self.my_text.GetScrollPos(wx.VERTICAL)
             if exp is None and position is None:
                 return
             default_group = self.parent.expressions_default_group_dict[exp]
@@ -167,6 +167,7 @@ class RichTextPanel(wx.Panel):
                 self.parent.group_expressions_dict[default_group.lower()].append(exp)
                 # get new positions, highlight words and mark groups in red
                 self.parent.get_positions(color="YELLOW", highlight=True, mark=True)
+                self.parent.event_scroll_to_pos(self.parent.last_scroll_pos)
 
     # this method get the relevant expression and position according to the caret position
     def get_exp_and_position(self, caret_position):
@@ -308,7 +309,6 @@ class Highlighter(wx.Frame):
         self.SetTitle(kwargs['title'])
         self.text_panel = RichTextPanel(self)
         self.combo = None
-        self.last_pos = None
         self.last_scroll_pos = None
         self.textbox = None
         self.toolbar = self.CreateToolBar(style=wx.TB_TEXT)
@@ -350,8 +350,6 @@ class Highlighter(wx.Frame):
         finish_icon = wx.Bitmap('Icons/finish.png')
         redo_icon = wx.Bitmap('Icons/redo.png')
         undo_icon = wx.Bitmap('Icons/undo.png')
-
-
         new_icon = wx.Bitmap('Icons/new.png')
         tag_icon = wx.Bitmap('Icons/submit.png')
 
@@ -506,7 +504,6 @@ class Highlighter(wx.Frame):
         self.text_panel.my_text.ProcessEvent(evt)
 
     def get_positions(self, color="", highlight=False, mark=False):
-        #TODO THE FIRST CARET POSITION DOESNT WORKING ON DOUBLE_CLICK
         start = time.time()
         self.pos_list = []
         self.groups_pos_list = []
@@ -592,7 +589,6 @@ class Highlighter(wx.Frame):
         #             self.indices_range_to_exp_dict[t] = exp
         #             break
         #     i += 1
-
         end = time.time()
         # print(end - start)
 
@@ -661,26 +657,14 @@ class Highlighter(wx.Frame):
         self.scale -= 0.1
         self.text_panel.my_text.SetScale(self.scale, refresh=True)
 
-    def number_of_rows_to_pos(self, pos):
-        my_text = self.text_panel.my_text.Value[:pos]
-        num_lines = len(my_text.splitlines())
-        return num_lines
-
-    def event_scroll_to_pos(self, caret_pos, scroll_pos):
-        num_rows = self.number_of_rows_to_pos(caret_pos)
-        self.text_panel.my_text.SetScrollPos(
-            wx.VERTICAL,
-            scroll_pos)
-        # self.text_panel.my_text.SetCaretPosition(pos)
-        # self.text_panel.my_text.SetInsertionPoint(pos)
-        # self.text_panel.my_text.ShowPosition(pos)
-        self.text_panel.my_text.ScrollLines(num_rows)
-        # self.text_panel.my_text.
+    def event_scroll_to_pos(self, scroll_pos):
+        self.text_panel.my_text.SetScrollPos(wx.VERTICAL, scroll_pos)
+        self.text_panel.my_text.ScrollLines(scroll_pos)
+        # self.Update()
 
     def on_double_click(self, e):
         caret_pos = self.text_panel.my_text.GetCaretPosition()
         self.last_scroll_pos = self.text_panel.my_text.GetScrollPos(wx.VERTICAL)
-        self.last_pos = caret_pos
         exp = None
         low = 0
         high = len(self.indices_range_to_exp_dict) - 1
@@ -760,30 +744,7 @@ class Highlighter(wx.Frame):
             self.group_expressions_dict[combobox_value.lower()].append(self.current_exp_selected.lower())
             # get new positions, highlight words and mark groups in red
             self.get_positions(color="YELLOW", highlight=True, mark=True)
-            self.event_scroll_to_pos(self.last_pos, self.last_scroll_pos)
-    # def on_tag_new_group(self, e):
-    #     combobox_value = self.combo.GetValue()
-    #     current_group = self.expressions_group_dict[self.current_exp_selected]
-    #     if combobox_value not in self.groups:
-    #         wx.MessageDialog(self.text_panel, "This is not a valid group!", "Test",
-    #                          wx.CANCEL | wx.ICON_WARNING).ShowModal()
-    #     elif current_group == combobox_value:
-    #         wx.MessageDialog(self.text_panel, "Same group was selected", "Test",
-    #                          wx.CANCEL | wx.ICON_WARNING).ShowModal()
-    #     else:
-    #         current_group = self.expressions_group_dict[self.current_exp_selected]
-    #         wx.MessageDialog(self.text_panel, f"Change group from {current_group} to {combobox_value}?", "Test",
-    #                          wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
-    #         current_group_exp_list = self.group_expressions_dict[current_group.lower()]
-    #         current_group_exp_list.remove(self.current_exp_selected)
-    #         self.expressions_group_dict[self.current_exp_selected.lower()] = combobox_value
-    #         t = (self.current_exp_selected, current_group)
-    #         self.undo_actions.append(t)
-    #         self.toolbar.EnableTool(ID_UNDO, True)
-    #         self.group_expressions_dict[current_group.lower()] = current_group_exp_list
-    #         self.group_expressions_dict[combobox_value.lower()].append(self.current_exp_selected.lower())
-    #         # get new positions, highlight words and mark groups in red
-    #         self.get_positions(color="YELLOW", highlight=True, mark=True)
+            self.event_scroll_to_pos(self.last_scroll_pos)
 
     def MakeToolBar(self):
         def doBind(item, handler, updateUI=None):
@@ -858,6 +819,7 @@ def search_words_in_txt(text):
         if i >= index:
             break
     return position
+
 
 def convert_word_to_txt_and_open(self, path):
     relevant_path = path.split("\\")[-1]
@@ -954,16 +916,13 @@ def start_app(path, json_object=None):
     frame.Show()
     highlighter.MainLoop()
 
-path = "C:/Users/shira/OneDrive/Desktop/Technion/semester7/IndustrialProject/Highlighter/Project/-25647833-V1-דרישות לסטודנטים המפורשות.docx"
+# path = "C:/Users/shira/OneDrive/Desktop/Technion/semester7/IndustrialProject/Highlighter/Project/-25647833-V1-דרישות לסטודנטים המפורשות.docx"
 # json_str = '{"machine group": ["coffee machine", "product", "machine"],"button group": ["Power button", "Control Knob"]}'
 # json = json.loads(json_str)
-start_app(path, json)
+# start_app(path, json)
 
 """
 Json Functions
 """
 
 # json = '{“machine group“: [“coffee machine“, “product“, “machine“], “button group“: [“Power button“, “Control Knob”]}'
-
-
-

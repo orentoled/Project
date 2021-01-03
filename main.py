@@ -8,8 +8,10 @@ from docx.shared import Inches
 from docx.enum.text import WD_COLOR_INDEX
 from termcolor import colored
 
-GUI.start_app('C:/Users/User/PycharmProjects/ProjectNLP/demo.txt')
+json_object = '{"Machine group": ["coffee machine", "product", "machine"], "Button group": ["Power button", "Control Knob"]}'
 
+
+GUI.start_app('C:/Users/User/PycharmProjects/ProjectNLP/demo2.txt', json_object)
 
 """
 
