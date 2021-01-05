@@ -104,7 +104,7 @@ class RichTextPanel(wx.Panel):
                 self.apply_tag(position, exp, wx.YELLOW)
                 self.my_text.ScrollIntoView(position[0], wx.WXK_UP)
             else:
-                wx.MessageDialog(self.parent, "Last instance", "Test",
+                wx.MessageDialog(self.parent, "Last instance", "",
                                  wx.OK | wx.ICON_WARNING).ShowModal()
 
         elif event_id == PREV_INST_ID:
@@ -135,7 +135,7 @@ class RichTextPanel(wx.Panel):
                 self.apply_tag(position, curr_exp, wx.YELLOW)
                 self.my_text.ScrollIntoView(position[0], wx.WXK_UP)
             else:
-                wx.MessageDialog(self.parent, "First instance", "Test",
+                wx.MessageDialog(self.parent, "First instance", "",
                                  wx.OK | wx.ICON_WARNING).ShowModal()
 
         elif event_id == RESTORE_TO_DEFAULT_ID:
@@ -146,10 +146,10 @@ class RichTextPanel(wx.Panel):
             default_group = self.parent.expressions_default_group_dict[exp]
             current_group = self.parent.expressions_group_dict[exp]
             if current_group == default_group:
-                wx.MessageDialog(self.parent, "Current group is the default group", "Test",
+                wx.MessageDialog(self.parent, "Current group is the default group", "",
                              wx.OK | wx.ICON_WARNING).ShowModal()
             else:
-                modal = wx.MessageDialog(self.parent, f"Change group from {current_group} to {default_group}?", "Test",
+                modal = wx.MessageDialog(self.parent, f"Change group from {current_group} to {default_group}?", "",
                                  wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
                 if modal == wx.ID_CANCEL:
                     return
@@ -188,10 +188,10 @@ class RichTextPanel(wx.Panel):
     # this method shows screen message dialog
     def messageDialog(self, msg, cancel=False):
         if cancel:
-            wx.MessageDialog(self.text_panel, msg, "Test",
+            wx.MessageDialog(self.text_panel, msg, "",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
         else:
-            wx.MessageDialog(self.text_panel, msg, "Test",
+            wx.MessageDialog(self.text_panel, msg, "",
                              wx.OK | wx.ICON_WARNING).ShowModal()
 
     # this method marks word by position with color of choice
@@ -516,7 +516,7 @@ class Highlighter(wx.Frame):
         if len(self.undo_actions) == 0:
             self.toolbar.EnableTool(ID_UNDO, False)
         current_group = self.expressions_group_dict[t[0]]
-        modal = wx.MessageDialog(self.text_panel, f"Undo '{t[0]}' from {current_group} to {t[1]}?", "Test",
+        modal = wx.MessageDialog(self.text_panel, f"Undo '{t[0]}' from {current_group} to {t[1]}?", "",
                          wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
         if modal == wx.ID_CANCEL:
             return
@@ -536,7 +536,7 @@ class Highlighter(wx.Frame):
         if len(self.redo_actions) == 0:
             self.toolbar.EnableTool(ID_REDO, False)
         current_group = self.expressions_group_dict[t[0]]
-        modal = wx.MessageDialog(self.text_panel, f"Redo '{t[0]}' from {current_group} to {t[1]}?", "Test",
+        modal = wx.MessageDialog(self.text_panel, f"Redo '{t[0]}' from {current_group} to {t[1]}?", "",
                          wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
         if modal == wx.ID_CANCEL:
             return
@@ -598,7 +598,7 @@ class Highlighter(wx.Frame):
         combobox_value = self.combo.GetValue()
         if combobox_value.lower() not in self.group_expressions_dict:
             # adding group
-            modal = wx.MessageDialog(self.text_panel, f"Add new group name {combobox_value}?", "Test",
+            modal = wx.MessageDialog(self.text_panel, f"Add new group name {combobox_value}?", "",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
             if modal == wx.ID_CANCEL:
                 return
@@ -608,7 +608,7 @@ class Highlighter(wx.Frame):
             self.combo.Append(combobox_value)
         else:
             # group already exists, warning
-            wx.MessageDialog(self.text_panel, "Group already exists", "Test",
+            wx.MessageDialog(self.text_panel, "Group already exists", "",
                              wx.OK | wx.ICON_WARNING).ShowModal()
 
     def on_combo_select(self, e):
@@ -617,14 +617,14 @@ class Highlighter(wx.Frame):
             return
         current_group = self.expressions_group_dict[self.current_exp_selected]
         if combobox_value not in self.groups:
-            wx.MessageDialog(self.text_panel, "This is not a valid group!", "Test",
+            wx.MessageDialog(self.text_panel, "This is not a valid group!", "",
                              wx.CANCEL | wx.ICON_WARNING).ShowModal()
         elif current_group == combobox_value:
-            wx.MessageDialog(self.text_panel, "Same group was selected", "Test",
+            wx.MessageDialog(self.text_panel, "Same group was selected", "",
                              wx.CANCEL | wx.ICON_WARNING).ShowModal()
         else:
             current_group = self.expressions_group_dict[self.current_exp_selected]
-            modal = wx.MessageDialog(self.text_panel, f"Change group from {current_group} to {combobox_value}?", "Test",
+            modal = wx.MessageDialog(self.text_panel, f"Change group from {current_group} to {combobox_value}?", "",
                              wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
             if modal == wx.ID_CANCEL:
                 return
