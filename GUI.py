@@ -562,7 +562,6 @@ class Highlighter(wx.Frame):
     def event_scroll_to_pos(self, scroll_pos):
         self.text_panel.my_text.SetScrollPos(wx.VERTICAL, scroll_pos)
         self.text_panel.my_text.ScrollLines(scroll_pos)
-        # self.Update()
 
     def on_double_click(self, e):
         caret_pos = self.text_panel.my_text.GetCaretPosition()
