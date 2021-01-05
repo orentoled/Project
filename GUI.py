@@ -12,9 +12,6 @@ import textract
 import pypandoc
 from bs4 import BeautifulSoup
 import time
-
-# from docx.shared import Inches
-# from docx.enum.text import WD_COLOR_INDEX
 from idna import unicode
 
 # event handling
@@ -35,9 +32,7 @@ RESTORE_TO_DEFAULT_ID = 14
 ONLY_THIS_ID = 15
 NEXT_INST_ID = 16
 PREV_INST_ID = 17
-
-UNDOS_ALLOWED = 18
-SECRET_COMB = 19
+SECRET_COMB = 18
 
 
 class RichTextPanel(wx.Panel):
@@ -84,7 +79,7 @@ class RichTextPanel(wx.Panel):
             if exp is not None and exp in self.parent.expressions_to_highlight:
                 self.parent.highlight_words("LIGHT GREY")
                 self.apply_tag(position, exp, wx.YELLOW)
-
+                self.my_text.ScrollIntoView(position[0], wx.WXK_UP)
 
         elif event_id == NEXT_INST_ID:
             # TODO focus on word
@@ -107,9 +102,7 @@ class RichTextPanel(wx.Panel):
             if position is not None:
                 self.parent.highlight_words("LIGHT GREY")
                 self.apply_tag(position, exp, wx.YELLOW)
-                # self.parent.SetScrollbar(orientation=wx.VERTICAL, position=position[0],
-                #                          thumbSize=self.parent.GetScrollThumb(wx.VERTICAL),
-                #                          range=-1, refresh=True)
+                self.my_text.ScrollIntoView(position[0], wx.WXK_UP)
             else:
                 wx.MessageDialog(self.parent, "Last instance", "Test",
                                  wx.OK | wx.ICON_WARNING).ShowModal()
@@ -140,6 +133,7 @@ class RichTextPanel(wx.Panel):
             if position is not None:
                 self.parent.highlight_words("LIGHT GREY")
                 self.apply_tag(position, curr_exp, wx.YELLOW)
+                self.my_text.ScrollIntoView(position[0], wx.WXK_UP)
             else:
                 wx.MessageDialog(self.parent, "First instance", "Test",
                                  wx.OK | wx.ICON_WARNING).ShowModal()
@@ -189,14 +183,6 @@ class RichTextPanel(wx.Panel):
                 high = mid - 1
             else:
                 low = mid + 1
-
-        # exp = None
-        # position = None
-        # for pos in self.parent.indices_range_to_exp_dict:
-        #     if pos[0] <= caret_position <= pos[1]:
-        #         exp = self.parent.indices_range_to_exp_dict[pos]
-        #         position = pos
-        #         break
         return exp, position
 
     # this method shows screen message dialog
@@ -207,28 +193,6 @@ class RichTextPanel(wx.Panel):
         else:
             wx.MessageDialog(self.text_panel, msg, "Test",
                              wx.OK | wx.ICON_WARNING).ShowModal()
-
-    # # this method is the functionality of "Tag Group" button
-    # def on_tag_new_group(self, e):
-    #     combobox_value = self.combo.GetValue()
-    #     current_group = self.expressions_group_dict[self.current_exp_selected]
-    #     # group doesn't exists
-    #     if combobox_value not in self.groups:
-    #         self.messageDialog("This is not a valid group!", cancel=True)
-    #     # group chosen is same as current
-    #     elif current_group == combobox_value:
-    #         self.messageDialog("Same group was selected", cancel=True)
-    #     # ok
-    #     else:
-    #         self.messageDialog(f"Change group from {current_group} to {combobox_value}?", cancel=True)
-    #         # update internal data
-    #         current_group_exp_list = self.group_expressions_dict[current_group]
-    #         current_group_exp_list.remove(self.current_exp_selected)
-    #         self.expressions_group_dict[self.current_exp_selected] = combobox_value
-    #         self.group_expressions_dict[current_group] = current_group_exp_list
-    #         self.group_expressions_dict[combobox_value].append(self.current_exp_selected)
-    #         # get new positions, highlight words and mark groups in red
-    #         self.get_positions(self, "YELLOW", highlight=True, mark=True)
 
     # this method marks word by position with color of choice
     def apply_tag(self, position, word=None, color=wx.YELLOW):
@@ -259,36 +223,6 @@ class RichTextPanel(wx.Panel):
             index += 1
         return word
 
-    def find_sentence(self, caret_position):
-        sentences = self.find_paragraph(caret_position).split(".")
-        for sentence in sentences:
-            sentence = sentence.strip()
-            start = self.my_text.GetValue().find(sentence)
-            end = start + len(sentence)
-            # append dot if applicable
-            if self.my_text.GetValue()[end] == ".":
-                sentence += "."
-            if start < caret_position < end:
-                return sentence, start, end
-
-    # def find_word(self, caret_position):
-    #     sentence, start, end = self.find_sentence(caret_position)
-    #     words = sentence[caret_position - start - 5:].split(" ")
-    #     for word in words:
-    #         word = word.strip()
-    #         clean_word = " ".join(re.findall("[a-zA-Z]+", word))
-    #         if clean_word.lower() in self.parent.words_to_highlight:
-    #             start = self.my_text.GetValue()[caret_position - 5:].find(word) + caret_position - 5
-    #             end = start + len(word)
-    #             # append dot if applicable
-    #             if self.my_text.GetValue()[end] == "!":
-    #                 word += "!"
-    #             elif self.my_text.GetValue()[end] == "?":
-    #                 word += "?"
-    #             if start < caret_position < end:
-    #                 return word
-    #     return None
-
     # this method is the functionality of "Open" button
     def on_open(self, event):
         wildcard = "TXT files (*.txt)|*.txt|*.docx"
@@ -306,8 +240,9 @@ class RichTextPanel(wx.Panel):
 class Highlighter(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(Highlighter, self).__init__(*args, **kwargs)
-        self.SetTitle(kwargs['title'])
+        self.SetTitle('Text Highlighter')
         self.text_panel = RichTextPanel(self)
+        self.json_object = kwargs['title']
         self.combo = None
         self.last_scroll_pos = None
         self.textbox = None
@@ -389,7 +324,6 @@ class Highlighter(wx.Frame):
         group_menu.Append(new_menu_item)
         group_menu.Append(tag_menu_item)
 
-
         self.Bind(wx.EVT_MENU, self.on_quit, id=APP_EXIT)
         self.Bind(wx.EVT_MENU, self.on_open, id=APP_OPEN)
         self.Bind(wx.EVT_MENU, self.on_save, id=APP_SAVE)
@@ -399,7 +333,6 @@ class Highlighter(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_undo, id=ID_UNDO)
         self.Bind(wx.EVT_MENU, self.on_finish, id=ID_FINISH)
         self.Bind(wx.EVT_MENU, self.on_add_new, id=ID_ADD_NEW)
-        # self.Bind(wx.EVT_MENU, self.on_tag_new_group, id=ID_TAG_GROUP)
 
         self.Bind(wx.EVT_MENU, self.on_secret_comb, id=SECRET_COMB)
         self.accel_tbl = wx.AcceleratorTable([(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('s'), SECRET_COMB)])
@@ -421,7 +354,10 @@ class Highlighter(wx.Frame):
         self.Close()
 
     def on_finish(self, e):
-        # self.on_save(e)
+        modal = wx.MessageDialog(self.text_panel, f"Finish session?", "",
+                                 wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+        if modal == wx.ID_CANCEL:
+            return
         print(json.dumps(self.group_expressions_dict))
         self.Close()
 
@@ -464,13 +400,6 @@ class Highlighter(wx.Frame):
         self.groups, self.words_to_highlight = get_expressions_from_json(self)
         if os.path.exists(path):
             convert_word_to_txt_and_open(self, path)
-
-        # print(f'{self.text_panel.my_text.GetValue()}')
-        # self.text_panel.my_text.WriteText(("\n" + "\n").join(self.groups))
-        # self.text_panel.my_text.WriteText(("\n" + "\n").join(self.words_to_highlight))
-        # self.text_panel.my_text.WriteText(self.opened_text + "\n" + "\n")
-        # self.text_panel.my_text.WriteText(f"index is: {search_words_in_txt(self.opened_text)}")
-
         self.get_positions(color="YELLOW", highlight=True, mark=True)
 
     def on_save(self, evt):
@@ -497,14 +426,12 @@ class Highlighter(wx.Frame):
         dlg.Destroy()
 
     def forward_event(self, evt):
-
         # The RichTextCtrl can handle menu and update events for undo,
         # redo, cut, copy, paste, delete, and select all, so just
         # forward the event to it.
         self.text_panel.my_text.ProcessEvent(evt)
 
     def get_positions(self, color="", highlight=False, mark=False):
-        start = time.time()
         self.pos_list = []
         self.groups_pos_list = []
         modified_text = ""
@@ -559,38 +486,9 @@ class Highlighter(wx.Frame):
                 attr_super.SetTextColour(wx.RED)
                 attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
                 self.text_panel.my_text.SetStyle(t2, attr_super)
-
             i += len(group) + 1
             so_far = i
             self.indices_range_to_exp_dict[t] = exp
-
-
-        # while i < len(modified_text):
-        #     for exp in self.expressions_to_highlight:
-        #         s = modified_text.lower()[i: i + len(exp)]
-        #         if s == exp:
-        #             t = (i, i + len(exp))
-        #             self.pos_list.append(t)
-        #             if highlight:
-        #                 self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
-        #             i += len(exp)
-        #             group = self.expressions_group_dict[exp]
-        #             t2 = (i, i + len(group) + 1)
-        #             self.groups_pos_list.append(t2)
-        #             if mark:
-        #                 attr_super = wx.richtext.RichTextAttr()
-        #                 attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
-        #                 attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
-        #                 attr_super.SetTextColour(wx.RED)
-        #                 attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
-        #                 self.text_panel.my_text.SetStyle(t2, attr_super)
-        #
-        #             i += len(group)
-        #             self.indices_range_to_exp_dict[t] = exp
-        #             break
-        #     i += 1
-        end = time.time()
-        # print(end - start)
 
     def wordlist_to_regex(self, words):
         escaped = map(re.escape, words)
@@ -613,6 +511,7 @@ class Highlighter(wx.Frame):
             self.text_panel.my_text.SetStyle(t, attr_super)
 
     def on_undo(self, e):
+        self.last_scroll_pos = self.text_panel.my_text.GetScrollPos(wx.VERTICAL)
         t = self.undo_actions.pop()
         if len(self.undo_actions) == 0:
             self.toolbar.EnableTool(ID_UNDO, False)
@@ -629,8 +528,10 @@ class Highlighter(wx.Frame):
         self.get_positions(color="YELLOW", highlight=True, mark=True)
         self.redo_actions.append((t[0], current_group))
         self.toolbar.EnableTool(ID_REDO, True)
+        self.event_scroll_to_pos(self.last_scroll_pos)
 
     def on_redo(self, e):
+        self.last_scroll_pos = self.text_panel.my_text.GetScrollPos(wx.VERTICAL)
         t = self.redo_actions.pop()
         if len(self.redo_actions) == 0:
             self.toolbar.EnableTool(ID_REDO, False)
@@ -648,13 +549,14 @@ class Highlighter(wx.Frame):
         self.get_positions("YELLOW", highlight=True, mark=True)
         self.undo_actions.append((t[0], current_group))
         self.toolbar.EnableTool(ID_UNDO, True)
+        self.event_scroll_to_pos(self.last_scroll_pos)
 
     def on_zoom_in(self, e):
-        self.scale += 0.1
+        self.scale += 0.05
         self.text_panel.my_text.SetScale(self.scale, refresh=True)
 
     def on_zoom_out(self, e):
-        self.scale -= 0.1
+        self.scale -= 0.05
         self.text_panel.my_text.SetScale(self.scale, refresh=True)
 
     def event_scroll_to_pos(self, scroll_pos):
@@ -683,13 +585,6 @@ class Highlighter(wx.Frame):
                 high = mid - 1
             else:
                 low = mid + 1
-
-        # for position in self.indices_range_to_exp_dict:
-        #     if position[0] <= caret_pos <= position[1]:
-        #         exp = self.indices_range_to_exp_dict[position]
-        #         self.current_exp_selected = exp
-        #         break
-
         if exp in self.expressions_group_dict:
             # valid expression
             belong_to_group = self.expressions_group_dict[exp]
@@ -753,39 +648,26 @@ class Highlighter(wx.Frame):
                 self.Bind(wx.EVT_UPDATE_UI, updateUI, item)
 
         open_icon = wx.Bitmap('Icons/open.png')
-        # save_icon = wx.Bitmap('Icons/save2.png')
         show_all_icon = wx.Bitmap('Icons/show.png')
         finish_icon = wx.Bitmap('Icons/finish.png')
         redo_icon = wx.Bitmap('Icons/redo.png')
         undo_icon = wx.Bitmap('Icons/undo.png')
-        # cancel_icon = wx.Bitmap('Icons/cancel.png')
         new_icon = wx.Bitmap('Icons/new.png')
-        # tag_icon = wx.Bitmap('Icons/submit.png')
         zoom_in_icon = wx.Bitmap('Icons/zoom-in.png')
         zoom_out_icon = wx.Bitmap('Icons/zoom-out.png')
 
         tbar = self.toolbar
         doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'), self.on_open)
-        # tbar.AddTool(-1, 'Save', save_icon, shortHelp='Save File')
         tundo = tbar.AddTool(ID_UNDO, 'Undo', undo_icon, shortHelp='Undo')
         tredo = tbar.AddTool(ID_REDO, 'Redo', redo_icon, shortHelp='Redo')
         show_all = tbar.AddTool(ID_SHOW_ALL, 'Show All', show_all_icon, shortHelp='Restore')
         finish = tbar.AddTool(-1, 'Finish', finish_icon, shortHelp='Finish session')
         zoom_in = tbar.AddTool(-1, 'Zoom In', zoom_in_icon, shortHelp='Zoom in')
         zoom_out = tbar.AddTool(-1, 'Zoom Out', zoom_out_icon, shortHelp='Zoom out')
-        # cancel = tbar.AddTool(-1, 'Cancel', cancel_icon, shortHelp='Cancel all changed made')
-
-        # tbar.EnableTool(wx.ID_REDO, False)
-
-        # self.Bind(wx.EVT_TOOL, self.forward_event, tundo)
-        # self.Bind(wx.EVT_TOOL, self.forward_event, tredo)
 
         doBind(finish, self.on_finish)
         doBind(show_all, self.on_show_all)
 
-
-
-        # doBind(cancel, self.on_quit)
         doBind(tundo, self.on_undo)
         doBind(tredo, self.on_redo)
         doBind(zoom_in, self.on_zoom_in)
@@ -806,9 +688,8 @@ class Highlighter(wx.Frame):
         tbar.AddSeparator()
         add = tbar.AddTool(-1, 'Add Group', new_icon, shortHelp='Add New Group')
         doBind(add, self.on_add_new)
-        # add = tbar.AddTool(-1, 'Tag Group', tag_icon, shortHelp='Change Group')
-        # doBind(add, self.on_tag_new_group)
         tbar.Realize()
+
 
 def search_words_in_txt(text):
     word = 'machine'
@@ -823,106 +704,50 @@ def search_words_in_txt(text):
 
 def convert_word_to_txt_and_open(self, path):
     relevant_path = path.split("\\")[-1]
-    filename = relevant_path.split(".")[-2]
-    fileExtension = relevant_path.split(".")[-1]
+    file_extension = relevant_path.split(".")[-1]
     path_without_type = path.split(".")[-2]
     word_extensions = ["docx", "doc", "DOCX", "DOC"]
-    if fileExtension in word_extensions:
-        output = handle_files(self, path_without_type, fileExtension)
-        # text = BeautifulSoup(output, features="lxml").get_text('\n')
-        # self.text_panel.my_text.WriteText(text)
+    if file_extension in word_extensions:
+        output = handle_files(self, path_without_type, file_extension)
         self.text_panel.my_text.WriteText(output)
         self.opened_text += output
-        # for line in output:
-        #     self.opened_text += line #+ "\n"
-
-            # self.text_panel.my_text.WriteText(line)
-        # content = textract.process(f'{path}', encoding='utf-8')
-        # textFilename = path_without_type + ".txt"
-        # write_text_file = open(textFilename, "wb")
-        # write_text_file.write(content)
-        # write_text_file.close()
-        # with open(textFilename, encoding='utf-8') as fobj:
-        #     for line in fobj:
-        #         self.opened_text += line + "\n"
-        #         self.text_panel.my_text.WriteText(line)
-
-
-        # docxFilename = path
-        # # print(docxFilename)
-        # document = Document(docxFilename)
-        # textFilename = path_without_type + ".txt"
-        # with io.open(textFilename, "w", encoding="utf-8") as textFile:
-        #     for para in document.paragraphs:
-        #         textFile.write(unicode(para.text))
-        # with open(textFilename, encoding='utf-8', errors='ignore') as fobj:
-        #     for line in fobj:
-        #         self.opened_text += line + "\n"
-        #         self.text_panel.my_text.WriteText(line)
-
-        # if os.path.exists(textFilename):
-        #     os.remove(textFilename)
     else:
         with open(path, encoding='utf-8', errors='ignore') as fobj:
             for line in fobj:
                 self.opened_text += line + "\n"
                 self.text_panel.my_text.WriteText(line)
-    # self.text_panel.my_text.WriteText(self.opened_text)
 
 
 def handle_files(self, path, file_extension):
-    # print(f'{path}.{file_extension}')
     output = pypandoc.convert_file(f'{path}.{file_extension.lower()}', 'plain')
     return output
-    # doc_extentions = ["doc", "DOC"]
-    # docx_extentions = ["docx", "DOCX"]
-    # if file_extension in docx_extentions:
-    #
-    # elif file_extension in doc_extentions:
+
 
 def get_expressions_from_json(self):
-    with open("json.txt") as json_file:
-        data = json.load(json_file)
-        expressions_list_items = data.items()
-        expressions_list, groups, words = [], [], []
-        for key, value in expressions_list_items:
-            groups.append(key)
-            expressions_list.append(value)
-            value_lower = [v.lower() for v in value]
-            self.group_expressions_dict[key.lower()] = value_lower
-            for expression in value:
-                self.expressions_group_dict[expression.lower()] = key
-        # print(self.expressions_group_dict)
-        # print(self.group_expressions_dict)
-        # print(f'expressions_list: {expressions_list} \n')
-        list_text = [item for sublist in expressions_list for item in sublist]
-        for text in list_text:
-            words_temp = re.findall('[^\W\d_]+', text)
-            words.extend(words_temp)
-        self.expressions_to_highlight = [word for word in list_text]
-        self.expressions_to_highlight = [x.lower() for x in self.expressions_to_highlight]
-        words = [x.lower() for x in words]
-        # list_text = [item for sublist in expressions_list for item in sublist]
-        # print(f'groups are: {groups} \n words are: {words}')
-        if not bool(self.expressions_default_group_dict):
-            self.expressions_default_group_dict = self.expressions_group_dict.copy()
-        return groups, words
+    data = json.loads(self.json_object)
+    expressions_list_items = data.items()
+    expressions_list, groups, words = [], [], []
+    for key, value in expressions_list_items:
+        groups.append(key)
+        expressions_list.append(value)
+        value_lower = [v.lower() for v in value]
+        self.group_expressions_dict[key.lower()] = value_lower
+        for expression in value:
+            self.expressions_group_dict[expression.lower()] = key
+    list_text = [item for sublist in expressions_list for item in sublist]
+    for text in list_text:
+        words_temp = re.findall('[^\W\d_]+', text)
+        words.extend(words_temp)
+    self.expressions_to_highlight = [word for word in list_text]
+    self.expressions_to_highlight = [x.lower() for x in self.expressions_to_highlight]
+    words = [x.lower() for x in words]
+    if not bool(self.expressions_default_group_dict):
+        self.expressions_default_group_dict = self.expressions_group_dict.copy()
+    return groups, words
 
 
-def start_app(path, json_object=None):
-    # get_expressions_from_json()
+def start_app(path, json_object):
     highlighter = wx.App()
-    frame = Highlighter(None, title='Text Highlighter', name=path)
+    frame = Highlighter(parent=None, title=json_object, name=path)
     frame.Show()
     highlighter.MainLoop()
-
-# path = "C:/Users/shira/OneDrive/Desktop/Technion/semester7/IndustrialProject/Highlighter/Project/-25647833-V1-דרישות לסטודנטים המפורשות.docx"
-# json_str = '{"machine group": ["coffee machine", "product", "machine"],"button group": ["Power button", "Control Knob"]}'
-# json = json.loads(json_str)
-# start_app(path, json)
-
-"""
-Json Functions
-"""
-
-# json = '{“machine group“: [“coffee machine“, “product“, “machine“], “button group“: [“Power button“, “Control Knob”]}'

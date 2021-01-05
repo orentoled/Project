@@ -11,7 +11,7 @@ from termcolor import colored
 json_object = '{"Machine group": ["coffee machine", "product", "machine"], "Button group": ["Power button", "Control Knob"]}'
 
 
-GUI.start_app('C:/Users/User/PycharmProjects/ProjectNLP/demo2.txt', json_object)
+GUI.start_app('C:/Users/User/PycharmProjects/ProjectNLP/demo.txt', json_object)
 
 """
 
