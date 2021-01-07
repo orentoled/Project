@@ -513,7 +513,7 @@ class Highlighter(wx.Frame):
         self.groups_pos_list = []
         modified_text = ""
         self.text_panel.my_text.Clear()
-        self.text_panel.my_text.WriteText(self.opened_text)
+        self.text_panel.my_text.WriteText(self.opened_text.replace("_", " "))
         raw_text = self.text_panel.my_text.Value
         # get positions of expressions
         for exp in self.expressions_to_highlight:
@@ -538,7 +538,7 @@ class Highlighter(wx.Frame):
         self.indices_range_to_exp_dict = {}
         i = 0
         self.text_panel.my_text.Clear()
-        self.text_panel.my_text.WriteText(modified_text)
+        self.text_panel.my_text.WriteText(modified_text.replace("_", " "))
         # color everything in white
         if mark and highlight:
             self.text_panel.my_text.SetStyle((0, len(self.text_panel.my_text.GetValue())),
@@ -879,7 +879,7 @@ def convert_word_to_txt_and_open(self, path):
         output = handle_files(self, path_without_type, fileExtension)
         # text = BeautifulSoup(output, features="lxml").get_text('\n')
         # self.text_panel.my_text.WriteText(text)
-        self.text_panel.my_text.WriteText(output)
+        self.text_panel.my_text.WriteText(output.replace("_", " "))
         self.opened_text += output
         # for line in output:
         #     self.opened_text += line #+ "\n"
@@ -964,7 +964,7 @@ def start_app(path, json_object=None):
     frame.Show()
     highlighter.MainLoop()
 
-path = "C:/Users/shira/OneDrive/Desktop/Technion/semester7/IndustrialProject/Highlighter/Project/demo4.txt"
+path = "C:/Users/shira/OneDrive/Desktop/Technion/semester7/IndustrialProject/Highlighter/Project/System-Requirements-Template.docx"
 # json_str = '{"machine group": ["coffee machine", "product", "machine"],"button group": ["Power button", "Control Knob"]}'
 # json = json.loads(json_str)
 start_app(path, json)
