@@ -448,10 +448,11 @@ class Highlighter(wx.Frame):
 
     def open_file(self):
         path = self.path
-        self.groups, self.words_to_highlight = get_expressions_from_json(self)
+        # self.groups, self.words_to_highlight = get_expressions_from_json(self)
         if os.path.exists(path):
             convert_word_to_txt_and_open(self, path)
-        self.get_positions(color="YELLOW", highlight=True, mark=True)
+            self.get_positions(color="YELLOW", highlight=True, mark=True)
+
 
     def on_open(self, event):
         wildcard = "TXT and DOC files (*.txt;*.docx;*.doc)|*.txt;*.docx;*.doc"
@@ -518,17 +519,21 @@ class Highlighter(wx.Frame):
         for exp in self.expressions_to_highlight:
             indices = [m.start() for m in re.finditer(exp, raw_text.lower())]
             for idx in indices:
-                t = (idx, idx + len(exp))
-                self.pos_list.append(t)
+                char_after_word = raw_text[idx + len(exp)]
+                if char_after_word in [' ', '.', ',']: #CHECKING IF THE EXP IS NOT PART OF OTHER WORD
+                    t = (idx, idx + len(exp))
+                    self.pos_list.append(t)
         self.pos_list.sort(key=lambda tup: tup[0])  # sorts in place
         list_of_pos_tuples = list(self.pos_list)
         j = 0
-        for t in list_of_pos_tuples:
-            modified_text += raw_text[j: t[1]]
-            j = t[1] + 1
-            exp = raw_text[t[0]: t[1]]
+        num_of_tuples = len(list_of_pos_tuples) #CHANGED TO RANGE SO WE ALSO CONSIDER THE END OF THE RAW TEXT
+        for t in range(0, num_of_tuples):
+            temp_tuple = list_of_pos_tuples[t]
+            modified_text += raw_text[j: temp_tuple[1]]
+            j = temp_tuple[1] + 1
+            exp = raw_text[temp_tuple[0]: temp_tuple[1]]
             modified_text += " " + self.expressions_group_dict[exp.lower()] + " "
-
+        modified_text += raw_text[j:]
         self.pos_list = []
         self.indices_range_to_exp_dict = {}
         i = 0
@@ -547,25 +552,30 @@ class Highlighter(wx.Frame):
                 return
             i = so_far + match_obj.start()
             exp = match_obj.group()
-            t = (i, i + len(exp))
-            self.pos_list.append(t)
-            if highlight:
-                self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
-            i += len(exp) + 1
-            group = self.expressions_group_dict[exp]
-            t2 = (i, i + len(group))
-            self.groups_pos_list.append(t2)
-            if mark:
-                attr_super = wx.richtext.RichTextAttr()
-                attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
-                attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
-                attr_super.SetTextColour(wx.RED)
-                attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
-                self.text_panel.my_text.SetStyle(t2, attr_super)
+            char_after_word = modified_text[i + len(exp)]
+            if char_after_word in [' ', '.', ',']:  # CHECKING IF THE EXP IS NOT PART OF OTHER WORD
+                t = (i, i + len(exp))
+                self.pos_list.append(t)
+                if highlight:
+                    self.text_panel.my_text.SetStyle(t, rt.RichTextAttr(wx.TextAttr("BLACK", color)))
+                i += len(exp) + 1
+                group = self.expressions_group_dict[exp]
+                t2 = (i, i + len(group))
+                self.groups_pos_list.append(t2)
+                if mark:
+                    attr_super = wx.richtext.RichTextAttr()
+                    attr_super.SetTextEffects(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+                    attr_super.SetFlags(wx.TEXT_ATTR_EFFECTS)
+                    attr_super.SetTextColour(wx.RED)
+                    attr_super.SetTextEffectFlags(wx.TEXT_ATTR_EFFECT_SUPERSCRIPT)
+                    self.text_panel.my_text.SetStyle(t2, attr_super)
 
-            i += len(group) + 1
-            so_far = i
-            self.indices_range_to_exp_dict[t] = exp
+                i += len(group) + 1
+                so_far = i
+                self.indices_range_to_exp_dict[t] = exp
+            else:
+                i += len(exp) + 1
+                so_far = i
 
 
         # while i < len(modified_text):
@@ -919,7 +929,7 @@ def handle_files(self, path, file_extension):
     # elif file_extension in doc_extentions:
 
 def get_expressions_from_json(self):
-    with open("json.txt") as json_file:
+    with open("json2.txt") as json_file:
         data = json.load(json_file)
         expressions_list_items = data.items()
         expressions_list, groups, words = [], [], []
@@ -954,7 +964,7 @@ def start_app(path, json_object=None):
     frame.Show()
     highlighter.MainLoop()
 
-path = "C:/Users/shira/OneDrive/Desktop/Technion/semester7/IndustrialProject/Highlighter/Project/-25647833-V1-דרישות לסטודנטים המפורשות.docx"
+path = "C:/Users/shira/OneDrive/Desktop/Technion/semester7/IndustrialProject/Highlighter/Project/demo4.txt"
 # json_str = '{"machine group": ["coffee machine", "product", "machine"],"button group": ["Power button", "Control Knob"]}'
 # json = json.loads(json_str)
 start_app(path, json)
