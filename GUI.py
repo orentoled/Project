@@ -319,12 +319,12 @@ class Highlighter(wx.Frame):
         quit_menu_item = wx.MenuItem(file_menu, APP_EXIT, '&Quit\tCtrl+Q')
 
         show_all_menu_item = wx.MenuItem(edit_menu, APP_OPEN, '&Show All')
-        finish_menu_item = wx.MenuItem(edit_menu, APP_SAVE, '&Finish')
+        # finish_menu_item = wx.MenuItem(edit_menu, APP_SAVE, '&Finish')
         redo_menu_item = wx.MenuItem(edit_menu, APP_EXIT, '&Redo')
         undo_menu_item = wx.MenuItem(edit_menu, APP_OPEN, '&Undo')
 
-        new_menu_item = wx.MenuItem(group_menu, APP_EXIT, '&Add New')
-        tag_menu_item = wx.MenuItem(group_menu, APP_OPEN, '&Tag')
+        # new_menu_item = wx.MenuItem(group_menu, APP_EXIT, '&Add New')
+        # tag_menu_item = wx.MenuItem(group_menu, APP_OPEN, '&Tag')
 
         # open_menu_item.SetBitmap(open_icon)
         save_menu_item.SetBitmap(save_icon)
@@ -337,18 +337,18 @@ class Highlighter(wx.Frame):
         show_all_menu_item.SetBitmap(show_all_icon)
         undo_menu_item.SetBitmap(undo_icon)
         redo_menu_item.SetBitmap(redo_icon)
-        finish_menu_item.SetBitmap(finish_icon)
+        # finish_menu_item.SetBitmap(finish_icon)
 
         edit_menu.Append(show_all_menu_item)
         edit_menu.Append(undo_menu_item)
         edit_menu.Append(redo_menu_item)
-        edit_menu.Append(finish_menu_item)
+        # edit_menu.Append(finish_menu_item)
 
-        new_menu_item.SetBitmap(new_icon)
-        tag_menu_item.SetBitmap(tag_icon)
-
-        group_menu.Append(new_menu_item)
-        group_menu.Append(tag_menu_item)
+        # new_menu_item.SetBitmap(new_icon)
+        # tag_menu_item.SetBitmap(tag_icon)
+        #
+        # group_menu.Append(new_menu_item)
+        # group_menu.Append(tag_menu_item)
 
         self.Bind(wx.EVT_MENU, self.on_quit, id=APP_EXIT)
         self.Bind(wx.EVT_MENU, self.on_open, id=APP_OPEN)
@@ -366,7 +366,7 @@ class Highlighter(wx.Frame):
 
         menu_bar.Append(file_menu, '&File')
         menu_bar.Append(edit_menu, '&Edit')
-        menu_bar.Append(group_menu, '&Group')
+        # menu_bar.Append(group_menu, '&Group')
         self.SetMenuBar(menu_bar)
 
         self.SetSize((800, 600))
