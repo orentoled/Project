@@ -65,7 +65,6 @@ class RichTextPanel(wx.Panel):
         self.tag(event_id)
 
     def tag(self, event_id):
-        # get caret position
         caret_position = self.my_text.GetCaretPosition() + 1
         if event_id == TAG_WORD_ID:
             word = self.find_word_to_tag(caret_position)
@@ -87,7 +86,6 @@ class RichTextPanel(wx.Panel):
                 file.close()
 
         elif event_id == NEXT_INST_ID:
-            # TODO focus on word
             exp = None
             curr_exp = None
             position = None
@@ -116,7 +114,6 @@ class RichTextPanel(wx.Panel):
                                  wx.OK | wx.ICON_WARNING).ShowModal()
 
         elif event_id == PREV_INST_ID:
-            # TODO focus on word
             curr_exp = None
             position = None
             index = 0
@@ -294,8 +291,8 @@ class Highlighter(wx.Frame):
         current_time = now.strftime("%H:%M:%S")
         file.write('\n')
         file.write(str(curr_date) + ' ' + str(current_time) + '\n')
+        file.write('file path:\'' + self.path + '\'\n')
         file.close()
-
 
     def init_ui(self):
         menu_bar = wx.MenuBar()
@@ -306,7 +303,7 @@ class Highlighter(wx.Frame):
         self.text_panel.my_text.SetScale(self.scale)
         self.text_panel.my_text.Bind(wx.EVT_LEFT_DCLICK, self.on_double_click)
 
-        open_icon = wx.Bitmap('Icons/open.png')
+        # open_icon = wx.Bitmap('Icons/open.png')
         save_icon = wx.Bitmap('Icons/save2.png')
         exit_icon = wx.Bitmap('Icons/exit.png')
 
@@ -317,7 +314,7 @@ class Highlighter(wx.Frame):
         new_icon = wx.Bitmap('Icons/new.png')
         tag_icon = wx.Bitmap('Icons/submit.png')
 
-        open_menu_item = wx.MenuItem(file_menu, APP_OPEN, '&Open\tCtrl+O')
+        # open_menu_item = wx.MenuItem(file_menu, APP_OPEN, '&Open\tCtrl+O')
         save_menu_item = wx.MenuItem(file_menu, APP_SAVE, '&Save\tCtrl+S')
         quit_menu_item = wx.MenuItem(file_menu, APP_EXIT, '&Quit\tCtrl+Q')
 
@@ -329,11 +326,11 @@ class Highlighter(wx.Frame):
         new_menu_item = wx.MenuItem(group_menu, APP_EXIT, '&Add New')
         tag_menu_item = wx.MenuItem(group_menu, APP_OPEN, '&Tag')
 
-        open_menu_item.SetBitmap(open_icon)
+        # open_menu_item.SetBitmap(open_icon)
         save_menu_item.SetBitmap(save_icon)
         quit_menu_item.SetBitmap(exit_icon)
 
-        file_menu.Append(open_menu_item)
+        # file_menu.Append(open_menu_item)
         file_menu.Append(save_menu_item)
         file_menu.Append(quit_menu_item)
 
@@ -418,7 +415,6 @@ class Highlighter(wx.Frame):
         wildcard = "TXT and DOC files (*.txt;*.docx;*.doc)|*.txt;*.docx;*.doc"
         dialog = wx.FileDialog(self, "Open Text Files", wildcard=wildcard,
                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
-
         if dialog.ShowModal() == wx.ID_CANCEL:
             return
         path = dialog.GetPath()
@@ -576,7 +572,7 @@ class Highlighter(wx.Frame):
         self.toolbar.EnableTool(ID_REDO, True)
         self.event_scroll_to_pos(self.last_scroll_pos)
         file = open('logger.txt', 'a')
-        file.write('-Undo\n')
+        file.write('-Undo:\'' + t[0] + '\' from:\'' + current_group + '\' to:\'' + t[1] + '\'\n')
         file.close()
 
     def on_redo(self, e):
@@ -600,7 +596,7 @@ class Highlighter(wx.Frame):
         self.toolbar.EnableTool(ID_UNDO, True)
         self.event_scroll_to_pos(self.last_scroll_pos)
         file = open('logger.txt', 'a')
-        file.write('-Redo\n')
+        file.write('-Redo:\'' + t[0] + '\' from:\'' + current_group + '\' to:\'' + t[1] + '\'\n')
         file.close()
 
     def on_zoom_in(self, e):
@@ -710,7 +706,7 @@ class Highlighter(wx.Frame):
             if updateUI is not None:
                 self.Bind(wx.EVT_UPDATE_UI, updateUI, item)
 
-        open_icon = wx.Bitmap('Icons/open.png')
+        # open_icon = wx.Bitmap('Icons/open.png')
         show_all_icon = wx.Bitmap('Icons/show.png')
         finish_icon = wx.Bitmap('Icons/finish.png')
         redo_icon = wx.Bitmap('Icons/redo.png')
@@ -720,7 +716,7 @@ class Highlighter(wx.Frame):
         zoom_out_icon = wx.Bitmap('Icons/zoom-out.png')
 
         tbar = self.toolbar
-        doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'), self.on_open)
+        # doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'), self.on_open)
         tundo = tbar.AddTool(ID_UNDO, 'Undo', undo_icon, shortHelp='Undo')
         tredo = tbar.AddTool(ID_REDO, 'Redo', redo_icon, shortHelp='Redo')
         show_all = tbar.AddTool(ID_SHOW_ALL, 'Show All', show_all_icon, shortHelp='Restore')
@@ -772,7 +768,6 @@ def convert_word_to_txt_and_open(self, path):
     word_extensions = ["docx", "doc", "DOCX", "DOC"]
     if file_extension in word_extensions:
         output = handle_files(self, path_without_type, file_extension)
-        # self.text_panel.my_text.WriteText(output)
         self.text_panel.my_text.WriteText(output.replace("_", " "))
         self.opened_text += output
     else:
