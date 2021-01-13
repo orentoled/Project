@@ -83,7 +83,7 @@ class RichTextPanel(wx.Panel):
                 self.apply_tag(position, exp, wx.YELLOW)
                 self.my_text.ScrollIntoView(position[0], wx.WXK_UP)
                 file = open('logger.txt', 'a')
-                file.write('-Only this\n')
+                file.write('-Only this on expression:\'' + exp + '\'\n')
                 file.close()
 
         elif event_id == NEXT_INST_ID:
@@ -109,7 +109,7 @@ class RichTextPanel(wx.Panel):
                 self.apply_tag(position, exp, wx.YELLOW)
                 self.my_text.ScrollIntoView(position[0], wx.WXK_UP)
                 file = open('logger.txt', 'a')
-                file.write('-Next instance\n')
+                file.write('-Next instance on expression:\'' + curr_exp + '\'\n')
                 file.close()
             else:
                 wx.MessageDialog(self.parent, "Last instance", "",
@@ -143,7 +143,7 @@ class RichTextPanel(wx.Panel):
                 self.apply_tag(position, curr_exp, wx.YELLOW)
                 self.my_text.ScrollIntoView(position[0], wx.WXK_UP)
                 file = open('logger.txt', 'a')
-                file.write('-Previous instance\n')
+                file.write('-Previous instance on expression:\'' + curr_exp + '\'\n')
                 file.close()
             else:
                 wx.MessageDialog(self.parent, "First instance", "",
@@ -174,7 +174,7 @@ class RichTextPanel(wx.Panel):
                 self.parent.get_positions(color="YELLOW", highlight=True, mark=True)
                 self.parent.event_scroll_to_pos(self.parent.last_scroll_pos)
                 file = open('logger.txt', 'a')
-                file.write('-Restoring expression:\''+ exp +'\' to default group:\'' + default_group + '\'\n')
+                file.write('-Restoring expression:\'' + exp + '\' to default group:\'' + default_group + '\'\n')
                 file.close()
 
     # this method get the relevant expression and position according to the caret position
@@ -456,7 +456,7 @@ class Highlighter(wx.Frame):
                 self.text_panel.my_text.WriteText(json.dumps(self.group_expressions_dict))
                 self.text_panel.my_text.SaveFile(path, file_type)
                 file = open('logger.txt', 'a')
-                file.write('-Saving file to path:\''+ path +'\'\n')
+                file.write('-Saving file to path:\'' + path + '\'\n')
                 file.close()
                 dlg.Destroy()
                 self.Close()
