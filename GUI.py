@@ -13,6 +13,8 @@ import pypandoc
 from bs4 import BeautifulSoup
 import time
 from idna import unicode
+from datetime import date
+from datetime import datetime
 
 # event handling
 APP_EXIT = 1
@@ -80,6 +82,9 @@ class RichTextPanel(wx.Panel):
                 self.parent.highlight_words("LIGHT GREY")
                 self.apply_tag(position, exp, wx.YELLOW)
                 self.my_text.ScrollIntoView(position[0], wx.WXK_UP)
+                file = open('logger.txt', 'a')
+                file.write('-Only this\n')
+                file.close()
 
         elif event_id == NEXT_INST_ID:
             # TODO focus on word
@@ -103,6 +108,9 @@ class RichTextPanel(wx.Panel):
                 self.parent.highlight_words("LIGHT GREY")
                 self.apply_tag(position, exp, wx.YELLOW)
                 self.my_text.ScrollIntoView(position[0], wx.WXK_UP)
+                file = open('logger.txt', 'a')
+                file.write('-Next instance\n')
+                file.close()
             else:
                 wx.MessageDialog(self.parent, "Last instance", "",
                                  wx.OK | wx.ICON_WARNING).ShowModal()
@@ -134,6 +142,9 @@ class RichTextPanel(wx.Panel):
                 self.parent.highlight_words("LIGHT GREY")
                 self.apply_tag(position, curr_exp, wx.YELLOW)
                 self.my_text.ScrollIntoView(position[0], wx.WXK_UP)
+                file = open('logger.txt', 'a')
+                file.write('-Previous instance\n')
+                file.close()
             else:
                 wx.MessageDialog(self.parent, "First instance", "",
                                  wx.OK | wx.ICON_WARNING).ShowModal()
@@ -162,6 +173,9 @@ class RichTextPanel(wx.Panel):
                 # get new positions, highlight words and mark groups in red
                 self.parent.get_positions(color="YELLOW", highlight=True, mark=True)
                 self.parent.event_scroll_to_pos(self.parent.last_scroll_pos)
+                file = open('logger.txt', 'a')
+                file.write('-Restoring expression:\''+ exp +'\' to default group:\'' + default_group + '\'\n')
+                file.close()
 
     # this method get the relevant expression and position according to the caret position
     def get_exp_and_position(self, caret_position):
@@ -267,6 +281,21 @@ class Highlighter(wx.Frame):
         self.init_ui()
         self.MakeToolBar()
         self.open_file()
+        self.createDataLogger()
+
+    def createDataLogger(self):
+        if os.path.exists('logger.txt'):
+            append_write = 'a'  # append if already exists
+        else:
+            append_write = 'w'  # make a new file if not
+        file = open('logger.txt', append_write)
+        curr_date = date.today()
+        now = datetime.now()
+        current_time = now.strftime("%H:%M:%S")
+        file.write('\n')
+        file.write(str(curr_date) + ' ' + str(current_time) + '\n')
+        file.close()
+
 
     def init_ui(self):
         menu_bar = wx.MenuBar()
@@ -358,6 +387,9 @@ class Highlighter(wx.Frame):
 
     def on_show_all(self, e):
         self.highlight_words("YELLOW")
+        file = open('logger.txt', 'a')
+        file.write('-Show All\n')
+        file.close()
 
     def find_word_to_tag(self, caret_position, text):
         index = caret_position
@@ -396,6 +428,9 @@ class Highlighter(wx.Frame):
         if os.path.exists(path):
             convert_word_to_txt_and_open(self, path)
         self.get_positions(color="YELLOW", highlight=True, mark=True)
+        file = open('logger.txt', 'a')
+        file.write('-Open file:\'' + path + '\'\n')
+        file.close()
 
     def on_save(self, evt):
         if not self.text_panel.my_text.GetFilename():
@@ -420,6 +455,9 @@ class Highlighter(wx.Frame):
                 self.text_panel.my_text.Clear()
                 self.text_panel.my_text.WriteText(json.dumps(self.group_expressions_dict))
                 self.text_panel.my_text.SaveFile(path, file_type)
+                file = open('logger.txt', 'a')
+                file.write('-Saving file to path:\''+ path +'\'\n')
+                file.close()
                 dlg.Destroy()
                 self.Close()
 
@@ -537,6 +575,9 @@ class Highlighter(wx.Frame):
         self.redo_actions.append((t[0], current_group))
         self.toolbar.EnableTool(ID_REDO, True)
         self.event_scroll_to_pos(self.last_scroll_pos)
+        file = open('logger.txt', 'a')
+        file.write('-Undo\n')
+        file.close()
 
     def on_redo(self, e):
         self.last_scroll_pos = self.text_panel.my_text.GetScrollPos(wx.VERTICAL)
@@ -558,14 +599,23 @@ class Highlighter(wx.Frame):
         self.undo_actions.append((t[0], current_group))
         self.toolbar.EnableTool(ID_UNDO, True)
         self.event_scroll_to_pos(self.last_scroll_pos)
+        file = open('logger.txt', 'a')
+        file.write('-Redo\n')
+        file.close()
 
     def on_zoom_in(self, e):
         self.scale += 0.05
         self.text_panel.my_text.SetScale(self.scale, refresh=True)
+        file = open('logger.txt', 'a')
+        file.write('-Zoom in\n')
+        file.close()
 
     def on_zoom_out(self, e):
         self.scale -= 0.05
         self.text_panel.my_text.SetScale(self.scale, refresh=True)
+        file = open('logger.txt', 'a')
+        file.write('-Zoom out\n')
+        file.close()
 
     def event_scroll_to_pos(self, scroll_pos):
         self.text_panel.my_text.SetScrollPos(wx.VERTICAL, scroll_pos)
@@ -614,6 +664,9 @@ class Highlighter(wx.Frame):
             self.group_expressions_dict[combobox_value.lower()] = []
             self.groups.append(combobox_value)
             self.combo.Append(combobox_value)
+            file = open('logger.txt', 'a')
+            file.write('-Add new group:\'' + combobox_value + '\'\n')
+            file.close()
         else:
             # group already exists, warning
             wx.MessageDialog(self.text_panel, "Group already exists", "",
@@ -647,6 +700,9 @@ class Highlighter(wx.Frame):
             # get new positions, highlight words and mark groups in red
             self.get_positions(color="YELLOW", highlight=True, mark=True)
             self.event_scroll_to_pos(self.last_scroll_pos)
+            file = open('logger.txt', 'a')
+            file.write('-Change tag of:\'' + self.current_exp_selected + '\' from:\'' + current_group + '\' to:\'' + combobox_value + '\'\n')
+            file.close()
 
     def MakeToolBar(self):
         def doBind(item, handler, updateUI=None):
