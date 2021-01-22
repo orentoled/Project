@@ -678,7 +678,7 @@ class Highlighter(wx.Frame):
                              wx.CANCEL | wx.ICON_WARNING).ShowModal()
         elif current_group == combobox_value:
             wx.MessageDialog(self.text_panel, "Same group was selected", "",
-                             wx.CANCEL | wx.ICON_WARNING).ShowModal()
+                             wx.ICON_WARNING).ShowModal()
         else:
             current_group = self.expressions_group_dict[self.current_exp_selected]
             modal = wx.MessageDialog(self.text_panel, f"Change group from {current_group} to {combobox_value}?", "",
