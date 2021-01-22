@@ -451,7 +451,5 @@ class Shape(object):
 
 
 def StartGame():
-    app = wx.App()
     tetris = Tetris(None)
     tetris.Show()
-    app.MainLoop()

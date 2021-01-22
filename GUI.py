@@ -1,4 +1,4 @@
-#This file implements the GUI of the HighLighter#
+# This file implements the GUI of the HighLighter
 
 import re
 import os
@@ -224,7 +224,6 @@ class RichTextPanel(wx.Panel):
         index = caret_position
         text = self.my_text.GetValue()
         while (('a' <= text[index] <= 'z') or ('A' <= text[index] <= 'Z')) and index >= 0:
-            # TODO '!', '.' etc.
             index -= 1
         if index != 0:
             index += 1
@@ -303,52 +302,34 @@ class Highlighter(wx.Frame):
         self.text_panel.my_text.SetScale(self.scale)
         self.text_panel.my_text.Bind(wx.EVT_LEFT_DCLICK, self.on_double_click)
 
-        # open_icon = wx.Bitmap('Icons/open.png')
         save_icon = wx.Bitmap('Icons/save2.png')
         exit_icon = wx.Bitmap('Icons/exit.png')
 
         show_all_icon = wx.Bitmap('Icons/show.png')
-        finish_icon = wx.Bitmap('Icons/finish.png')
         redo_icon = wx.Bitmap('Icons/redo.png')
         undo_icon = wx.Bitmap('Icons/undo.png')
-        new_icon = wx.Bitmap('Icons/new.png')
-        tag_icon = wx.Bitmap('Icons/submit.png')
 
         # open_menu_item = wx.MenuItem(file_menu, APP_OPEN, '&Open\tCtrl+O')
         save_menu_item = wx.MenuItem(file_menu, APP_SAVE, '&Save\tCtrl+S')
         quit_menu_item = wx.MenuItem(file_menu, APP_EXIT, '&Quit\tCtrl+Q')
 
         show_all_menu_item = wx.MenuItem(edit_menu, APP_OPEN, '&Show All')
-        # finish_menu_item = wx.MenuItem(edit_menu, APP_SAVE, '&Finish')
         redo_menu_item = wx.MenuItem(edit_menu, APP_EXIT, '&Redo')
         undo_menu_item = wx.MenuItem(edit_menu, APP_OPEN, '&Undo')
 
-        # new_menu_item = wx.MenuItem(group_menu, APP_EXIT, '&Add New')
-        # tag_menu_item = wx.MenuItem(group_menu, APP_OPEN, '&Tag')
-
-        # open_menu_item.SetBitmap(open_icon)
         save_menu_item.SetBitmap(save_icon)
         quit_menu_item.SetBitmap(exit_icon)
 
-        # file_menu.Append(open_menu_item)
         file_menu.Append(save_menu_item)
         file_menu.Append(quit_menu_item)
 
         show_all_menu_item.SetBitmap(show_all_icon)
         undo_menu_item.SetBitmap(undo_icon)
         redo_menu_item.SetBitmap(redo_icon)
-        # finish_menu_item.SetBitmap(finish_icon)
 
         edit_menu.Append(show_all_menu_item)
         edit_menu.Append(undo_menu_item)
         edit_menu.Append(redo_menu_item)
-        # edit_menu.Append(finish_menu_item)
-
-        # new_menu_item.SetBitmap(new_icon)
-        # tag_menu_item.SetBitmap(tag_icon)
-        #
-        # group_menu.Append(new_menu_item)
-        # group_menu.Append(tag_menu_item)
 
         self.Bind(wx.EVT_MENU, self.on_quit, id=APP_EXIT)
         self.Bind(wx.EVT_MENU, self.on_open, id=APP_OPEN)
@@ -366,7 +347,6 @@ class Highlighter(wx.Frame):
 
         menu_bar.Append(file_menu, '&File')
         menu_bar.Append(edit_menu, '&Edit')
-        # menu_bar.Append(group_menu, '&Group')
         self.SetMenuBar(menu_bar)
 
         self.SetSize((800, 600))
@@ -394,7 +374,6 @@ class Highlighter(wx.Frame):
         if caret_position >= text_size - 1:
             return None
         while (('a' <= text[index] <= 'z') or ('A' <= text[index] <= 'Z')) and index >= 0:
-            # TODO '!', '.' etc.
             index -= 1
         if index != 0:
             index += 1
@@ -706,7 +685,6 @@ class Highlighter(wx.Frame):
             if updateUI is not None:
                 self.Bind(wx.EVT_UPDATE_UI, updateUI, item)
 
-        # open_icon = wx.Bitmap('Icons/open.png')
         show_all_icon = wx.Bitmap('Icons/show.png')
         finish_icon = wx.Bitmap('Icons/finish.png')
         redo_icon = wx.Bitmap('Icons/redo.png')
@@ -716,7 +694,6 @@ class Highlighter(wx.Frame):
         zoom_out_icon = wx.Bitmap('Icons/zoom-out.png')
 
         tbar = self.toolbar
-        # doBind(tbar.AddTool(-1, 'Open', open_icon, shortHelp='Open File'), self.on_open)
         tundo = tbar.AddTool(ID_UNDO, 'Undo', undo_icon, shortHelp='Undo')
         tredo = tbar.AddTool(ID_REDO, 'Redo', redo_icon, shortHelp='Redo')
         show_all = tbar.AddTool(ID_SHOW_ALL, 'Show All', show_all_icon, shortHelp='Restore')
@@ -748,17 +725,6 @@ class Highlighter(wx.Frame):
         add = tbar.AddTool(-1, 'Add Group', new_icon, shortHelp='Add New Group')
         doBind(add, self.on_add_new)
         tbar.Realize()
-
-
-def search_words_in_txt(text):
-    word = 'machine'
-    index = text.split().index(word)
-    position = 0
-    for i, word in enumerate(text):
-        position += (1 + len(word))
-        if i >= index:
-            break
-    return position
 
 
 def convert_word_to_txt_and_open(self, path):
